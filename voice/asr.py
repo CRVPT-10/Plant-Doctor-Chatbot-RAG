@@ -37,7 +37,7 @@ class SpeechToTextManager:
             logger.error(f"Failed to load faster-whisper model: {e}. STT features will be unavailable or mocked.")
             self.enabled = False
 
-    def transcribe(self, audio_path: str) -> Tuple[str, str]:
+    def transcribe(self, audio_path: str, language: str = None) -> Tuple[str, str]:
         """
         Transcribes the audio file and returns a tuple (transcribed_text, detected_language).
         """
@@ -48,10 +48,14 @@ class SpeechToTextManager:
             logger.warning("ASR is disabled or not loaded. Returning fallback text.")
             return "Speech recognition is currently offline. Please type your query.", "en"
             
-        logger.info(f"Transcribing audio file: {audio_path}")
+        logger.info(f"Transcribing audio file: {audio_path} (Forced language: {language})")
         try:
             # Transcribe audio file. beam_size=5 is standard for good accuracy
-            segments, info = self.model.transcribe(audio_path, beam_size=5)
+            transcribe_kwargs = {"beam_size": 5}
+            if language and language != "auto":
+                transcribe_kwargs["language"] = language
+                
+            segments, info = self.model.transcribe(audio_path, **transcribe_kwargs)
             
             # Join segments to reconstruct the full text
             text_segments = []

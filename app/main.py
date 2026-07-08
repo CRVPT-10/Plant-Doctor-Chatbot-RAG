@@ -210,7 +210,10 @@ if submit_query:
                 # Save bytes to send multipart post
                 audio_bytes = audio_data["bytes"]
                 files = {"file": ("query.wav", audio_bytes, "audio/wav")}
-                data = {"session_id": st.session_state.session_id}
+                data = {
+                    "session_id": st.session_state.session_id,
+                    "language": lang_code
+                }
                 
                 resp = requests.post(f"{API_URL}/voice", files=files, data=data)
                 if resp.status_code == 200:
@@ -243,15 +246,18 @@ if submit_query:
                 if resp.status_code == 200:
                     res = resp.json()
                     answer = res.get("answer", "")
+                    audio_url = res.get("audio_url", None)
                     
                     st.session_state.chat_history.append({
                         "farmer": text_query,
                         "doctor": answer,
-                        "audio_url": None, # Text query doesn't generate TTS automatically to save latency
+                        "audio_url": audio_url,
                         "sources": res.get("sources", []),
                         "confidence": res.get("confidence", 0.0),
                         "metrics": res.get("metrics", {})
                     })
+                    if audio_url:
+                        st.session_state.playing_audio = audio_url
                     st.rerun()
                 else:
                     st.error("Error processing chat.")
@@ -274,7 +280,7 @@ if st.session_state.chat_history:
             # Construct backend full URL
             full_audio_url = f"{API_URL}{audio_url}"
             st.write("Play synthesized response:")
-            st.audio(full_audio_url)
+            st.audio(full_audio_url, autoplay=True)
             st.markdown(f"[Download Speech Audio File 📥]({full_audio_url})")
         else:
             # Offer text-to-speech creation for text responses

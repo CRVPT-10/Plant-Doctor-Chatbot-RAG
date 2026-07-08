@@ -152,10 +152,20 @@ async def chat(request: ChatRequest):
                 target_lang=lang
             )
             
+        # Generate audio file path using TTS for the final answer
+        audio_url = None
+        try:
+            audio_filepath = tts_manager.generate_speech(final_answer, lang=lang)
+            audio_filename = os.path.basename(audio_filepath)
+            audio_url = f"/static/{audio_filename}"
+        except Exception as tts_err:
+            logger.error(f"TTS generation error in chat endpoint: {tts_err}")
+            
         return {
             "query": query,
             "translated_query": routed_query if needs_translation else None,
             "answer": final_answer,
+            "audio_url": audio_url,
             "sources": result["sources"],
             "confidence": result["confidence"],
             "metrics": result["metrics"]
@@ -167,7 +177,8 @@ async def chat(request: ChatRequest):
 @app.post("/voice")
 async def voice_chat(
     file: UploadFile = File(...),
-    session_id: str = Form("default_session")
+    session_id: str = Form("default_session"),
+    language: Optional[str] = Form(None)
 ):
     """
     Receives voice audio file, transcribes (STT), routes adaptively (Translation),
@@ -182,7 +193,7 @@ async def voice_chat(
             shutil.copyfileobj(file.file, buffer)
             
         # 1. Speech-to-Text (ASR)
-        transcription, detected_lang = asr_manager.transcribe(temp_audio_path)
+        transcription, detected_lang = asr_manager.transcribe(temp_audio_path, language=language)
         
         if not transcription.strip():
             return {
