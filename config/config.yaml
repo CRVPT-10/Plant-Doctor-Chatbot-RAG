@@ -1,0 +1,156 @@
+# Plant Doctor Chatbot Configuration
+
+project:
+  name: "Plant Doctor Chatbot"
+  version: "1.0.0"
+
+# Directories config (relative to workspace root)
+paths:
+  documents_dir: "data/documents"
+  processed_dir: "data/processed"
+  faiss_index_dir: "data/faiss_index"
+  metadata_db: "data/metadata/metadata.db"
+  models_dir: "models"
+  embedding_cache_dir: "cache/embeddings"
+  response_cache_dir: "cache/responses"
+  translation_cache_dir: "cache/translations"
+
+# Ingestion settings
+chunker:
+  chunk_size: 1000
+  chunk_overlap: 200
+  separators:
+    - "\n\n"
+    - "\n"
+    - ". "
+    - " "
+
+# Embedding model settings
+embedding:
+  model_name: "BAAI/bge-small-en-v1.5" # Default BGE model
+  device: "cpu" # 'cpu', 'cuda'
+  cache_enabled: true
+
+# Reranking settings
+reranker:
+  model_name: "BAAI/bge-reranker-base"
+  top_n: 5
+  device: "cpu" # 'cpu', 'cuda'
+  enabled: true
+
+# Vector Store configurations
+vector_store:
+  backend: "faiss"
+  index_path: "data/faiss_index"
+  metadata_db: "data/metadata/metadata.db"
+
+# Retrieval settings
+retrieval:
+  # Supported types: 'similarity', 'mmr', 'similarity_threshold', 'hybrid'
+  search_type: "hybrid"
+  top_k: 5
+  fetch_k: 10 # Used for MMR to fetch before filtering
+  similarity_threshold: 0.5
+  lambda_mult: 0.5 # MMR diversity parameter
+  hybrid_weight: 0.5 # BM25 weight vs Dense weight
+
+# LLM Client (Ollama)
+llm:
+  provider: "ollama"
+  model: "qwen2.5:7b"
+  temperature: 0.2
+  top_p: 0.9
+  repeat_penalty: 1.1
+  num_ctx: 8192
+  base_url: "http://localhost:11434"
+  timeout: 60.0
+
+# Memory window
+memory:
+  window_size: 5
+
+# Voice configuration
+voice:
+  asr:
+    model_size: "base" # tiny, base, small, medium, large-v3
+    device: "cpu"
+    compute_type: "int8" # int8, float16
+  tts:
+    provider: "edge-tts" # 'edge-tts', 'gtts'
+    voice_en: "en-US-GuyNeural"
+    voice_hi: "hi-IN-MadhurNeural"
+    voice_te: "te-IN-MohanNeural"
+    voice_ta: "ta-IN-ValluvarNeural"
+  translation:
+    enabled: true
+    allow_fallback: true
+
+# Prompt configuration
+prompt:
+  system: |
+    You are "Plant Doctor", a professional agricultural AI assistant. Your primary goal is to help farmers diagnose crop diseases, identify pests, suggest fertilizing methods, and provide farming advice based strictly on the provided context.
+    
+    CRITICAL RULES:
+    1. Base your answer ONLY on the provided context (retrieved documents and conversation history).
+    2. If the context does not contain the answer (even after combining facts across different retrieved documents, or using simple unit conversions), or if you cannot confidently determine it, reply EXACTLY with:
+       "I could not find sufficient information in the agricultural documents."
+       Do NOT invent crop treatments, diseases, or recommendations not supported by the context. However, you are permitted to perform simple units conversions (e.g. converting hectares to acres) and nutrient translations (e.g. explaining Nitrogen recommendations in terms of Urea) to directly answer the farmer's queries.
+    3. Keep your advice practical, structured, and easy for farmers to understand.
+    4. ALWAYS respond in the exact same language as the user query. For example, if the query is in English, you MUST answer in English. If the query is in Hindi, you MUST answer in Hindi. If the query is in Telugu, you MUST answer in Telugu. If the query is in Tamil, you MUST answer in Tamil. Do not use any other language under any circumstances.
+    5. MULTI-DOCUMENT SYNTHESIS: You must combine and synthesize facts from multiple retrieved chunks to answer composite, mixed, or multi-part questions (e.g., if one chunk describes yellowing symptoms and another describes leaf spots, combine them to address both symptoms in your answer). Do not treat chunks in isolation; connect the facts together to form a coherent answer.
+    6. TABLE OF CONTENTS EXCLUSION: Do NOT interpret page numbers or page index lists in the Table of Contents (e.g., "productivity of Potato ... 178" or "Onion ... 180") as agricultural data, yields, or doses. These are index page numbers, not actual values. If the actual details table page itself is not in the context, treat it as missing information and use the fallback phrase.
+
+  context: |
+    ---
+    Source Document: {source}
+    Page: {page}
+    Chunk ID: {chunk_id}
+    [CONTENT START]
+    {content}
+    [CONTENT END]
+    ---
+
+  user: |
+    Conversation History:
+    {history}
+
+    Retrieved Context Documents:
+    {context}
+
+    Current Farmer Question:
+    {question}
+
+    Answer the question based strictly on the retrieved context documents above. You MUST write your response in the same language as the Current Farmer Question (e.g. if the question is in English, reply in English). If the information is not present (even after simple unit conversions or fertilizer equivalents), remember to output the exact fallback phrase: "I could not find sufficient information in the agricultural documents."
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "logs/app.log"
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - "faithfulness"
+    - "answer_relevancy"
+    - "context_recall"
+    - "context_precision"
+    - "latency"
+
+# Cache configuration
+cache:
+  embeddings: true
+  translations: true
+  responses: true
+
+# OCR configuration (future-proof)
+ocr:
+  enabled: false
+  engine: "tesseract"
+
+# Supported document formats
+documents:
+  supported_formats:
+    - "pdf"
+    - "txt"
+    - "docx"
+    - "md"

@@ -1,0 +1,11 @@
+KVK Rice Disease Advisory - Rice Blast Control
+Document ID: R-BLAST-2026
+
+Rice Blast Disease Symptoms:
+Rice Blast (caused by Magnaporthe oryzae) affects all aboveground parts of the rice plant. The most characteristic symptoms are spindle-shaped (eye-shaped) lesions on the leaves, with grayish centers and brown borders. Lesions can coalesce and destroy the entire leaf blade. In 'neck blast', the pathogen attacks the neck node of the panicle, turning it blackish-purple and causing the panicle to fall over, leading to empty grains.
+
+Management Strategies for Rice Blast:
+- Cultivar Selection: Plant resistant varieties recommended for your region (such as MTU-1010 or Swarna Sub1).
+- Fertilization Balance: Avoid excess application of Nitrogen fertilizers. High nitrogen levels make leaf tissues succulent, increasing susceptibility to blast. Use a split dose of nitrogen (50% basal, 25% at tillering, and 25% at panicle initiation).
+- Water Management: Keep fields flooded with water (2-5 cm depth) where possible. Blast spreads faster in dry, upland soil conditions.
+- Fungicidal Spray: If leaf blast lesions exceed 5% leaf area, spray Tricyclazole 75 WP at 0.6 grams per litre of water, or Carbendazim at 1 gram per litre of water. Repeat spray after 10-14 days if needed.

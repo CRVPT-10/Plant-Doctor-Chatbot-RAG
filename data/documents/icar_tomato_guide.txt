@@ -1,0 +1,11 @@
+ICAR Tomato Disease and Management Guide
+Version 2.4 - Farmer Advisory
+
+Tomato Yellow Leaf Curl Virus (TYLCV) Symptoms:
+TYLCV is a devastating virus transmitted by whiteflies (Bemisia tabaci). Infected tomato plants show severe stunting, erect growth habit, and marked reduction in leaf size. The leaves curl upwards and inwards, resembling small cups. Leaf margins display strong yellowing (chlorosis). If plants are infected early, fruit yield can drop by 100%.
+
+Prevention and Management of TYLCV:
+1. Whitefly Control: Install yellow sticky traps (15-20 traps per acre) to monitor and capture adult whiteflies. Apply systemic insecticides like Imidacloprid (0.5 ml/litre of water) or spray neem oil (1% concentration) to repel vectors.
+2. Net Barriers: Raise tomato nursery beds under 40-mesh insect-proof nylon nets to prevent early infestation.
+3. Clean Cultivation: Remove and destroy infected volunteer tomato plants and weeds in the vicinity which act as viral reservoirs.
+4. Resistant Cultivars: Use certified hybrid seed varieties with TYLCV resistance (e.g., Arka Rakshak, Abhinav).

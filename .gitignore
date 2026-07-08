@@ -1,0 +1,45 @@
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache & compiles
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# App logs
+logs/
+*.log
+
+# Inference caches
+cache/
+
+# Local databases and FAISS indexes (rebuilt dynamically)
+data/faiss_index/
+data/metadata/
+data/processed/
+
+# Local model weights (downloaded automatically on first startup)
+models/
+
+# Environment configuration secrets
+.env
