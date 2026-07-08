@@ -130,3 +130,45 @@ class LanguageTranslator:
                 "needs_translation": True,
                 "original_lang": detected_lang
             }
+
+    def convert_to_native_script(self, text: str, lang: str) -> str:
+        """
+        Converts Romanized/transliterated text (like Hinglish/Telugish/Tanglish) into its native script
+        using the local Ollama LLM.
+        """
+        if not text or not self.enabled or lang == "en":
+            return text
+            
+        # Check if the text contains any Latin/English alphabetic characters
+        has_latin = any('a' <= c.lower() <= 'z' for c in text)
+        if not has_latin:
+            return text
+            
+        lang_names = {
+            "hi": "Hindi",
+            "te": "Telugu",
+            "ta": "Tamil"
+        }
+        lang_name = lang_names.get(lang.lower(), "Telugu")
+        
+        prompt = (
+            f"Convert the following Romanized/transliterated {lang_name} text into native {lang_name} script.\n"
+            f"Rules:\n"
+            f"1. Output ONLY the native {lang_name} script, and absolutely nothing else.\n"
+            f"2. Do not add any English words, explanations, notes, or punctuation if they are not in the source.\n"
+            f"3. Ensure the spelling in the native script is accurate and natural.\n\n"
+            f"Text to convert: {text}"
+        )
+        
+        try:
+            from rag.llm_client import OllamaClient
+            llm_client = OllamaClient()
+            converted = llm_client.generate(prompt)
+            converted = converted.replace('"', '').replace("'", "").strip()
+            if converted:
+                logger.info(f"Successfully converted Romanized {lang_name} to native script: '{converted}'")
+                return converted
+        except Exception as e:
+            logger.error(f"Error converting Romanized {lang_name} to native script: {e}")
+            
+        return text

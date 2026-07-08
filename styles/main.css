@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+/* Core Typography & Background */
+html, body, [class*="css"], .stApp {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    background-color: #070c10 !important;
+    color: #e3e8ec !important;
+}
+
+/* Headers styling */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+}
+
+/* Hide Default Streamlit Menu and Footer */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {background-color: transparent !important;}
+
+/* Outline secondary button style */
+button[data-testid="stBaseButton-secondary"] {
+    background: transparent !important;
+    border: 1px solid #16242e !important;
+    color: #90a4ae !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    padding: 6px 12px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+button[data-testid="stBaseButton-secondary"]:hover {
+    border-color: #90a4ae !important;
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Green primary action button style */
+button[data-testid="stBaseButton-primary"] {
+    background: #00a86b !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-size: 0.9rem !important;
+    padding: 8px 18px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    box-shadow: 0 4px 10px rgba(0, 168, 107, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+
+button[data-testid="stBaseButton-primary"]:hover {
+    background: #00c853 !important;
+    box-shadow: 0 6px 15px rgba(0, 200, 83, 0.35) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Spacing and margins overrides */
+.element-container {
+    margin-bottom: 0px !important;
+}

@@ -1,0 +1,67 @@
+/* Glassmorphism Generic Cards */
+.custom-card {
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card-header {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Recent Conversations Log Lists */
+.recent-conv-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #16242e;
+    font-size: 0.85rem;
+}
+
+.recent-conv-item:last-child {
+    border-bottom: none;
+}
+
+.recent-conv-text {
+    color: #90a4ae;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
+.recent-conv-time {
+    color: #546e7a;
+    font-size: 0.78rem;
+}
+
+/* Diagnostics Info Lists */
+.diagnostic-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #16242e;
+}
+
+.diagnostic-row:last-child {
+    border-bottom: none;
+}
+
+.diagnostic-label {
+    color: #90a4ae;
+}
+
+.diagnostic-value {
+    color: #00e676;
+    font-weight: 600;
+}

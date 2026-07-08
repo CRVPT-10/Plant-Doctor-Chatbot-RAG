@@ -29,7 +29,7 @@ run-backend:
 
 run-frontend:
 	@echo "Starting Streamlit frontend on port 8501..."
-	$(STREAMLIT) run app/main.py --server.port 8501
+	$(STREAMLIT) run app.py --server.port 8501
 
 test:
 	@echo "Running unit tests..."

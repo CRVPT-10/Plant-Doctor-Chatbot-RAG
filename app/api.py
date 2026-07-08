@@ -122,12 +122,11 @@ async def chat(request: ChatRequest):
     try:
         query = request.query
         session_id = request.session_id
-        lang = request.language
+        lang = request.language or "en"
         
-        # If no language is manual, run simple routing
-        if not lang:
-            # Simple fallback: English
-            lang = "en"
+        # Convert Romanized input to native script if necessary
+        if lang != "en":
+            query = translator.convert_to_native_script(query, lang)
             
         # Route query through translator (Checks native vs translate logic)
         routing_info = translator.route_query(query, lang)
@@ -195,6 +194,10 @@ async def voice_chat(
         # 1. Speech-to-Text (ASR)
         transcription, detected_lang = asr_manager.transcribe(temp_audio_path, language=language)
         
+        # Convert Romanized transcript to native script if necessary
+        if detected_lang != "en":
+            transcription = translator.convert_to_native_script(transcription, detected_lang)
+            
         if not transcription.strip():
             return {
                 "transcription": "",

@@ -1,0 +1,93 @@
+/* Sidebar Panel Styles */
+section[data-testid="stSidebar"] {
+    background-color: #0b141b !important;
+    border-right: 1px solid #16242e !important;
+    padding-top: 20px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 25px;
+    padding: 0 10px;
+}
+
+.sidebar-logo {
+    background: #00a86b;
+    color: white;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Custom Navigation Pills inside Sidebar */
+div[data-testid="stRadio"] > label {
+    display: none !important; /* Hide default radio group label */
+}
+
+div[data-testid="stRadio"] > div {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    gap: 8px;
+}
+
+div[data-testid="stRadio"] label[data-baseweb="radio"] {
+    background-color: transparent;
+    padding: 10px 16px !important;
+    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    color: #90a4ae !important;
+    font-weight: 500 !important;
+    width: 100% !important;
+    transition: all 0.25s ease !important;
+    margin: 0 !important;
+}
+
+div[data-testid="stRadio"] label[data-baseweb="radio"]:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    color: #ffffff !important;
+}
+
+div[data-testid="stRadio"] label[data-baseweb="radio"] div[data-testid="stMarker"] {
+    display: none !important; /* Hide radio option circles */
+}
+
+div[data-baseweb="radio"] input:checked + div {
+    color: #ffffff !important;
+}
+
+/* Status Panel and Stats Cards */
+.status-panel, .stats-card {
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.status-row:last-child {
+    margin-bottom: 0;
+}
+
+.status-value-ready {
+    color: #00e676;
+    font-weight: 600;
+}
+
+.status-value-offline {
+    color: #ff1744;
+    font-weight: 600;
+}

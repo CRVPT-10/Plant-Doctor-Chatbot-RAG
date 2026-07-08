@@ -1,0 +1,182 @@
+/* Chat Workspaces and Message Containers */
+.chat-bubble-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+.chat-meta {
+    font-size: 0.8rem;
+    color: #90a4ae;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.user-message-container {
+    align-items: flex-end;
+}
+
+.doctor-message-container {
+    align-items: flex-start;
+}
+
+.user-bubble {
+    background: #004d40;
+    border: 1px solid #00796b;
+    color: #e0f2f1;
+    padding: 14px 20px;
+    border-radius: 16px;
+    border-top-right-radius: 4px;
+    max-width: 85%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.doctor-bubble {
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    color: #e3e8ec;
+    padding: 20px;
+    border-radius: 16px;
+    border-top-left-radius: 4px;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Bullet list override to checkmark icons */
+.doctor-bubble ul {
+    list-style: none !important;
+    padding-left: 0 !important;
+    margin: 15px 0 !important;
+}
+
+.doctor-bubble li {
+    position: relative !important;
+    padding-left: 28px !important;
+    margin-bottom: 10px !important;
+}
+
+.doctor-bubble li::before {
+    content: "✔" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 2px !important;
+    background-color: rgba(0, 230, 118, 0.15) !important;
+    color: #00e676 !important;
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.7rem !important;
+    font-weight: bold !important;
+}
+
+/* Notice box styling */
+.notice-box {
+    background-color: rgba(2, 136, 209, 0.08);
+    border-left: 4px solid #0288d1;
+    color: #81d4fa;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Sources inside bubbles */
+.sources-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+.source-mini-card {
+    background-color: #101e29;
+    border: 1px solid #1c2e3d;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.source-mini-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e3e8ec;
+}
+
+.source-mini-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.source-mini-page {
+    font-size: 0.78rem;
+    color: #90a4ae;
+}
+
+.source-mini-score {
+    background-color: rgba(0, 230, 118, 0.12);
+    color: #00e676;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+/* Actions Toolbar */
+.bubble-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
+    color: #90a4ae;
+    font-size: 0.85rem;
+}
+
+.action-icon-btn {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.action-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+/* Input Area wrapper container */
+.input-wrapper {
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    border-radius: 12px;
+    padding: 10px;
+    margin-top: 15px;
+}
+
+/* Custom Sleek Streamlit Audio Player */
+div[data-testid="stAudio"] {
+    background-color: #0b141b !important;
+    border: 1px solid #16242e !important;
+    border-radius: 8px !important;
+    padding: 5px !important;
+}
