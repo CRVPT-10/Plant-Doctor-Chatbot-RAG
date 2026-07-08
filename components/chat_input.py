@@ -4,6 +4,7 @@ from backend.client import PlantDoctorAPIClient
 def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url: str):
     """
     Renders input card and buttons row, processes text/voice submissions, and autoplays audio.
+    Columns are split uniformly [2, 2, 2, 4, 2] to ensure the action buttons have equal spacing.
     """
     st.markdown("<div class='input-wrapper'>", unsafe_allow_html=True)
     
@@ -14,14 +15,14 @@ def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url:
         key="chat_text_input"
     )
     
-    btn_cols = st.columns([2, 2, 2, 3, 2])
+    btn_cols = st.columns([2, 2, 2, 4, 2])
     with btn_cols[0]:
-        img_upload = st.button("📷 Image", use_container_width=True, type="secondary")
+        img_upload = st.button("📷 Upload Image", use_container_width=True, type="secondary")
     with btn_cols[1]:
         # Mic recorder component
         from streamlit_mic_recorder import mic_recorder
         audio_data = mic_recorder(
-            start_prompt="🎤 Voice",
+            start_prompt="🎤 Voice Input",
             stop_prompt="⏹️ Stop",
             key="voice_recorder_widget",
             just_once=True

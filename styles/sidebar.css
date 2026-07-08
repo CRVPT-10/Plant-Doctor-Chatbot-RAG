@@ -24,41 +24,41 @@ section[data-testid="stSidebar"] {
     justify-content: center;
 }
 
-/* Custom Navigation Pills inside Sidebar */
-div[data-testid="stRadio"] > label {
-    display: none !important; /* Hide default radio group label */
-}
-
-div[data-testid="stRadio"] > div {
-    background: transparent !important;
+/* Custom Sidebar Navigation Pills using Streamlit Buttons */
+div[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] {
+    background-color: transparent !important;
     border: none !important;
-    padding: 0 !important;
-    gap: 8px;
-}
-
-div[data-testid="stRadio"] label[data-baseweb="radio"] {
-    background-color: transparent;
-    padding: 10px 16px !important;
-    border-radius: 10px !important;
-    border: 1px solid transparent !important;
     color: #90a4ae !important;
     font-weight: 500 !important;
     width: 100% !important;
-    transition: all 0.25s ease !important;
-    margin: 0 !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 10px 16px !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
 }
 
-div[data-testid="stRadio"] label[data-baseweb="radio"]:hover {
+div[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"]:hover {
     background-color: rgba(255, 255, 255, 0.04) !important;
     color: #ffffff !important;
 }
 
-div[data-testid="stRadio"] label[data-baseweb="radio"] div[data-testid="stMarker"] {
-    display: none !important; /* Hide radio option circles */
+div[data-testid="stSidebar"] button[data-testid="stBaseButton-primary"] {
+    background-color: #0e2d27 !important;
+    border: 1px solid #144439 !important;
+    color: #00e676 !important;
+    font-weight: 600 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 10px 16px !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
 }
 
-div[data-baseweb="radio"] input:checked + div {
-    color: #ffffff !important;
+div[data-testid="stSidebar"] button[data-testid="stBaseButton-primary"]:hover {
+    background-color: #123830 !important;
+    color: #00ff87 !important;
 }
 
 /* Status Panel and Stats Cards */

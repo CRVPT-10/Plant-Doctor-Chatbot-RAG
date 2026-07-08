@@ -29,21 +29,26 @@ def render_sidebar(api_client: PlantDoctorAPIClient):
         )
         lang_code = LANGUAGE_TO_CODE[selected_lang_name]
         
-        # 2. Navigation Pills
+        # 2. Custom Navigation pills using Streamlit Buttons
         st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #90a4ae; margin-bottom: 5px; margin-top: 25px;'>NAVIGATION</p>", unsafe_allow_html=True)
-        page_selection = st.radio(
-            "Navigation",
-            options=["💬 Chat Assistant", "📤 Ingestion Panel", "📄 Document Library", "⚙️ Settings"],
-            label_visibility="collapsed"
-        )
         
-        page_map = {
-            "💬 Chat Assistant": "Chat Assistant",
-            "📤 Ingestion Panel": "Ingestion Panel",
-            "📄 Document Library": "Document Library",
-            "⚙️ Settings": "Settings"
-        }
-        st.session_state.current_page = page_map[page_selection]
+        pages = [
+            {"label": "💬 Chat Assistant", "name": "Chat Assistant"},
+            {"label": "📤 Ingestion Panel", "name": "Ingestion Panel"},
+            {"label": "📄 Document Library", "name": "Document Library"},
+            {"label": "⚙️ Settings", "name": "Settings"}
+        ]
+        
+        for p in pages:
+            is_active = st.session_state.current_page == p["name"]
+            if st.button(
+                p["label"], 
+                key=f"nav_{p['name']}", 
+                type="primary" if is_active else "secondary", 
+                use_container_width=True
+            ):
+                st.session_state.current_page = p["name"]
+                st.rerun()
         
         # Fetch status details from Client
         health_status = api_client.get_health()
