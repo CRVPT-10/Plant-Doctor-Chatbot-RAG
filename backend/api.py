@@ -65,6 +65,11 @@ class ChatRequest(BaseModel):
     session_id: str = "default_session"
     language: Optional[str] = None # Optional manual language override
 
+class TranslateRequest(BaseModel):
+    text: str
+    source_lang: str = "en"
+    target_lang: str
+
 @app.post("/upload")
 async def upload_document(
     file: UploadFile = File(...), 
@@ -259,14 +264,45 @@ async def voice_chat(
         if os.path.exists(temp_audio_path):
             os.remove(temp_audio_path)
 
+@app.post("/translate")
+async def translate_text(request: TranslateRequest):
+    """
+    Translates text to target language and generates TTS voice output.
+    """
+    try:
+        translated_text = translator.translate(
+            request.text, 
+            source_lang=request.source_lang, 
+            target_lang=request.target_lang
+        )
+        
+        # Generate audio file path using TTS for the translated answer
+        audio_url = None
+        try:
+            audio_filepath = tts_manager.generate_speech(translated_text, lang=request.target_lang)
+            audio_filename = os.path.basename(audio_filepath)
+            audio_url = f"/static/{audio_filename}"
+        except Exception as tts_err:
+            logger.error(f"TTS generation error in translate endpoint: {tts_err}")
+            
+        return {
+            "translated_text": translated_text,
+            "audio_url": audio_url
+        }
+    except Exception as e:
+        logger.error(f"Error in translate endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/embed")
 async def rebuild_index():
     """
     Manually triggers full vector store rebuild from local data/documents folder.
+    Clears the response cache to ensure fresh generated answers are returned.
     """
     try:
         ingest_directory(force_rebuild=True)
-        return {"status": "success", "message": "FAISS Index and SQLite database successfully rebuilt."}
+        rag_chain.clear_cache()
+        return {"status": "success", "message": "FAISS Index, SQLite database, and Response Cache successfully rebuilt/cleared."}
     except Exception as e:
         logger.error(f"Error rebuilding index: {e}")
         raise HTTPException(status_code=500, detail=str(e))

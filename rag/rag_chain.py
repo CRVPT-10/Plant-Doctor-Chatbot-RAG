@@ -195,11 +195,15 @@ class RAGChain:
                 "content": doc.page_content
             })
             
-        # Save to Cache (only if it is a successful search result rather than LLM error message)
-        if "encountered an error" not in response_text:
+        # Save to Cache (only if it is a successful search result rather than LLM error or fallback message)
+        fallback_phrase = "I could not find sufficient information in the agricultural documents."
+        is_fallback = fallback_phrase.strip().lower() in response_text.strip().lower()
+        
+        if "encountered an error" not in response_text and not is_fallback:
             self._save_cached_response(input_hash, user_query, response_text, sources, confidence)
-            # Add to memory
-            self.memory.add_interaction(session_id, user_query, response_text)
+            
+        # Add to memory regardless
+        self.memory.add_interaction(session_id, user_query, response_text)
             
         metrics = {
             "retrieval_time_sec": retrieval_time,
@@ -218,3 +222,15 @@ class RAGChain:
             "confidence": confidence,
             "metrics": metrics
         }
+
+    def clear_cache(self) -> bool:
+        """Clears all entries in the response cache database."""
+        try:
+            with sqlite3.connect(self.cache_db) as conn:
+                conn.execute("DELETE FROM responses")
+                conn.commit()
+            logger.info("Response cache cleared successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Error clearing response cache: {e}")
+            return False

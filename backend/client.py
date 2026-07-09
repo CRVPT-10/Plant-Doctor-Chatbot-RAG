@@ -80,3 +80,15 @@ class PlantDoctorAPIClient:
         resp = requests.post(url, files=files, timeout=300.0)
         resp.raise_for_status()
         return resp.json()
+
+    def translate_text(self, text: str, target_lang: str, source_lang: str = "en") -> Dict[str, Any]:
+        """Translates text and returns translated answer and TTS audio URL."""
+        url = f"{self.base_url}/translate"
+        payload = {
+            "text": text,
+            "source_lang": source_lang,
+            "target_lang": target_lang
+        }
+        resp = requests.post(url, json=payload, timeout=60.0)
+        resp.raise_for_status()
+        return resp.json()

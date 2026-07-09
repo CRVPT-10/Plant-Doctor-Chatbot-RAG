@@ -29,6 +29,18 @@ def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url:
         )
     with btn_cols[2]:
         translate_btn = st.button("🌐 Translate", use_container_width=True, type="secondary")
+        if translate_btn and st.session_state.chat_history:
+            last_turn = st.session_state.chat_history[-1]
+            with st.spinner("Translating last response..."):
+                try:
+                    res = api_client.translate_text(last_turn["doctor"], lang_code)
+                    last_turn["doctor"] = res["translated_text"]
+                    last_turn["audio_url"] = res["audio_url"]
+                    if res["audio_url"]:
+                        st.session_state.playing_audio = res["audio_url"]
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Translation failed: {e}")
         
     with btn_cols[4]:
         send_btn = st.button("🚀 Send", use_container_width=True, type="primary")

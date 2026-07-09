@@ -25,7 +25,7 @@ ingest-rebuild:
 
 run-backend:
 	@echo "Starting FastAPI backend server on port 8000..."
-	$(UV_SERVER) app.api:app --host 0.0.0.0 --port 8000 --reload
+	$(UV_SERVER) backend.api:app --host 0.0.0.0 --port 8000 --reload
 
 run-frontend:
 	@echo "Starting Streamlit frontend on port 8501..."
