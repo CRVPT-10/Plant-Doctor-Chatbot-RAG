@@ -62,17 +62,22 @@ PROCESSED_DIR = os.path.join(config.base_dir, "data", "processed")
 os.makedirs(DOCUMENTS_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-@app.on_event("startup")
-async def startup_event():
+def run_initial_ingestion():
     # Automatic initial ingestion if index does not exist (useful for Render free tier)
     index_file = os.path.join(config.get_absolute_path("vector_store.index_path"), "index.faiss")
     if not os.path.exists(index_file):
-        logger.info("FAISS index not found on startup. Triggering automatic initial ingestion...")
+        logger.info("FAISS index not found on startup. Triggering background automatic ingestion...")
         try:
             ingest_directory(force_rebuild=True)
-            logger.info("Automatic initial ingestion completed successfully.")
+            logger.info("Background automatic initial ingestion completed successfully.")
         except Exception as e:
-            logger.error(f"Error during automatic ingestion on startup: {e}")
+            logger.error(f"Error during background automatic ingestion on startup: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    import threading
+    thread = threading.Thread(target=run_initial_ingestion, daemon=True)
+    thread.start()
 
 # Mount the static directory to serve generated audio files
 app.mount("/static", StaticFiles(directory=PROCESSED_DIR), name="static")
