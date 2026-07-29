@@ -161,8 +161,8 @@ class LanguageTranslator:
         )
         
         try:
-            from rag.llm_client import OllamaClient
-            llm_client = OllamaClient()
+            from backend.llm.factory import LLMFactory
+            llm_client = LLMFactory.get_client()
             converted = llm_client.generate(prompt)
             converted = converted.replace('"', '').replace("'", "").strip()
             if converted:
