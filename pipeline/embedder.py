@@ -4,7 +4,6 @@ import json
 import numpy as np
 from typing import List
 from langchain.embeddings.base import Embeddings
-from sentence_transformers import SentenceTransformer
 from utils.config import config
 from utils.logger import get_logger
 from utils.helpers import get_text_hash
@@ -33,6 +32,7 @@ class CachedEmbeddings(Embeddings):
         
         # Load SentenceTransformer model locally
         logger.info(f"Loading SentenceTransformer: {self.model_name} on device {self.device}")
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(
             self.model_name,
             cache_folder=embedding_models_dir,

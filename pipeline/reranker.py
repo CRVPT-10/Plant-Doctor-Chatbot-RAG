@@ -1,7 +1,5 @@
 import os
 from typing import List
-# pyrefly: ignore [missing-import]
-from sentence_transformers import CrossEncoder
 from langchain_core.documents import Document
 from utils.config import config
 from utils.logger import get_logger
@@ -27,6 +25,7 @@ class CrossEncoderReranker:
             
             logger.info(f"Loading CrossEncoder: {self.model_name} on device {self.device}")
             try:
+                from sentence_transformers import CrossEncoder
                 self.model = CrossEncoder(
                     self.model_name,
                     cache_folder=reranker_cache_dir,
