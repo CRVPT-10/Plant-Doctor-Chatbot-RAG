@@ -147,49 +147,7 @@ async def upload_document(
         logger.error(f"Error handling document upload: {e}")
         if os.path.exists(dest_path):
             os.remove(dest_path)
-        raise HTTPException(status_code=500, detail=f"Inestion error: {str(e)}")
-
-@app.get("/debug-dns")
-async def debug_dns():
-    import socket
-    import requests
-    results = {}
-    hosts = [
-        "google.com",
-        "api.groq.com",
-        "huggingface.co",
-        "api-inference.huggingface.co",
-        "dns.google",
-        "cloudflare-dns.com"
-    ]
-    for host in hosts:
-        try:
-            # We resolve using raw original getaddrinfo to bypass monkey patch for diagnostic info
-            # if we want, or just gethostbyname
-            ip = socket.gethostbyname(host)
-            results[host] = {"ip": ip, "status": "resolved"}
-        except Exception as e:
-            results[host] = {"ip": None, "status": f"failed: {e}"}
-            
-    # Try testing outbound HTTP connectivity
-    urls = {
-        "google": "https://www.google.com",
-        "groq": "https://api.groq.com/openai/v1/models",
-        "hf_main": "https://huggingface.co",
-        "hf_api": "https://api-inference.huggingface.co/models/BAAI/bge-small-en-v1.5",
-        "cloudflare_doh": "https://1.1.1.1/dns-query?name=google.com&type=A"
-    }
-    results["http"] = {}
-    for name, url in urls.items():
-        try:
-            verify = False if "1.1.1.1" in url else True
-            headers = {"Accept": "application/dns-json"} if "1.1.1.1" in url else {}
-            r = requests.get(url, timeout=5, verify=verify, headers=headers)
-            results["http"][name] = {"code": r.status_code, "status": "success"}
-        except Exception as e:
-            results["http"][name] = {"code": None, "status": f"failed: {e}"}
-            
-    return results
+        raise HTTPException(status_code=500, detail=f"Ingestion error: {str(e)}")
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
