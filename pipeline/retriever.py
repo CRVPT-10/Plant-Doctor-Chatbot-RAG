@@ -116,6 +116,7 @@ class AgriculturalRetriever:
     """
     def __init__(self, vector_store_manager: VectorStoreManager = None):
         self.vs_manager = vector_store_manager or VectorStoreManager()
+        self._bm25_cache = {}
         
         # Load configs
         self.search_type = config.get("retrieval.search_type", "similarity")
@@ -124,6 +125,10 @@ class AgriculturalRetriever:
         self.similarity_threshold = config.get("retrieval.similarity_threshold", 0.5)
         self.lambda_mult = config.get("retrieval.lambda_mult", 0.5)
         self.hybrid_weight = config.get("retrieval.hybrid_weight", 0.5)
+
+    def clear_bm25_cache(self):
+        """Clears the cached BM25 sparse index."""
+        self._bm25_cache.clear()
 
     def retrieve(self, query: str, search_type_override: str = None, top_k_override: int = None, lang_filter: str = None) -> List[Document]:
         """
@@ -273,13 +278,20 @@ class AgriculturalRetriever:
         # Fetch dense results
         dense_results = self._retrieve_dense(query, top_k=top_k * 2, lang_filter=lang_filter)
         
-        # Load corpus for BM25
-        corpus = self._get_corpus_from_db(lang_filter=lang_filter)
-        if not corpus:
+        # Load/Retrieve cached BM25 index
+        cache_key = lang_filter or "all"
+        if cache_key not in self._bm25_cache:
+            corpus = self._get_corpus_from_db(lang_filter=lang_filter)
+            if corpus:
+                self._bm25_cache[cache_key] = SimpleBM25(corpus)
+            else:
+                self._bm25_cache[cache_key] = None
+                
+        bm25 = self._bm25_cache[cache_key]
+        if not bm25:
             return dense_results[:top_k]
             
         # Run BM25 keyword search
-        bm25 = SimpleBM25(corpus)
         bm25_results = bm25.score(query, top_k=top_k * 2)
         all_bm25_scores = bm25.score_all(query)
         

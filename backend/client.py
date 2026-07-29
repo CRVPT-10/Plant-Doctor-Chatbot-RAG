@@ -13,7 +13,7 @@ class PlantDoctorAPIClient:
         """Queries status of backend modules."""
         url = f"{self.base_url}/health"
         try:
-            resp = requests.get(url, timeout=5.0)
+            resp = requests.get(url, timeout=15.0)
             if resp.status_code == 200:
                 return resp.json()
         except Exception as e:

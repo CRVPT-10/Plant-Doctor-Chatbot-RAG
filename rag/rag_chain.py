@@ -227,12 +227,13 @@ class RAGChain:
         }
 
     def clear_cache(self) -> bool:
-        """Clears all entries in the response cache database."""
+        """Clears all entries in the response cache database and retriever BM25 cache."""
         try:
             with sqlite3.connect(self.cache_db) as conn:
                 conn.execute("DELETE FROM responses")
                 conn.commit()
-            logger.info("Response cache cleared successfully.")
+            self.retriever.clear_bm25_cache()
+            logger.info("Response cache and BM25 search cache cleared successfully.")
             return True
         except Exception as e:
             logger.error(f"Error clearing response cache: {e}")

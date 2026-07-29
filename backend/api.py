@@ -156,6 +156,7 @@ async def upload_document(
         docs = loader.load_file(dest_path)
         chunks = chunker.chunk_documents(docs)
         vector_store.add_documents(chunks)
+        rag_chain.retriever.clear_bm25_cache()
         
         return {
             "status": "success",
