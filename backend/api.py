@@ -1,4 +1,12 @@
 import os
+import socket
+
+# Patch socket.getaddrinfo to force IPv4 and prevent EAI_ADDRFAMILY (Errno -5) DNS lookup errors on Render
+orig_getaddrinfo = socket.getaddrinfo
+def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+socket.getaddrinfo = patched_getaddrinfo
+
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
