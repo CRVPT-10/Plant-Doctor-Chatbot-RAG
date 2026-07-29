@@ -23,19 +23,22 @@ class SpeechToTextManager:
         whisper_cache_dir = os.path.join(self.models_dir, "whisper")
         os.makedirs(whisper_cache_dir, exist_ok=True)
         
-        logger.info(f"Initializing WhisperModel '{self.model_size}' on '{self.device}'...")
-        try:
-            from faster_whisper import WhisperModel
-            self.model = WhisperModel(
-                self.model_size,
-                device=self.device,
-                compute_type=self.compute_type,
-                download_root=whisper_cache_dir
-            )
-            logger.info("WhisperModel initialized successfully.")
-        except Exception as e:
-            logger.error(f"Failed to load faster-whisper model: {e}. STT features will be unavailable or mocked.")
-            self.enabled = False
+        if self.enabled:
+            logger.info(f"Initializing WhisperModel '{self.model_size}' on '{self.device}'...")
+            try:
+                from faster_whisper import WhisperModel
+                self.model = WhisperModel(
+                    self.model_size,
+                    device=self.device,
+                    compute_type=self.compute_type,
+                    download_root=whisper_cache_dir
+                )
+                logger.info("WhisperModel initialized successfully.")
+            except Exception as e:
+                logger.error(f"Failed to load faster-whisper model: {e}. STT features will be unavailable or mocked.")
+                self.enabled = False
+        else:
+            logger.info("WhisperModel is disabled (ASR_ENABLED = false). Skipping initialization to save memory.")
 
     def transcribe(self, audio_path: str, language: str = None) -> Tuple[str, str]:
         """
