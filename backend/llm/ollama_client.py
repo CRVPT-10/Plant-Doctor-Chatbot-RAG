@@ -1,32 +1,23 @@
 import requests
-import json
-from typing import Dict, Any, Optional
+from typing import Optional
+from backend.llm.base import BaseLLMClient
 from utils.config import config
 from utils.logger import get_logger
 
-logger = get_logger("llm_client")
+logger = get_logger("ollama_llm")
 
-class OllamaClient:
+class OllamaLLMClient(BaseLLMClient):
     """
     Client wrapper for interacting with local Ollama service.
     """
-    def __init__(
-        self, 
-        base_url: str = None, 
-        model_name: str = None, 
-        temperature: float = None,
-        timeout: float = None
-    ):
-        self.base_url = base_url or config.get("llm.base_url", "http://localhost:11434")
-        self.model_name = model_name or config.get("llm.model", "llama3")
-        self.temperature = temperature if temperature is not None else config.get("llm.temperature", 0.2)
-        self.timeout = timeout or config.get("llm.timeout", 60.0)
+    def __init__(self):
+        self.base_url = config.get("llm.base_url", "http://localhost:11434").rstrip("/")
+        self.model_name = config.get("llm.model", "qwen2.5:7b")
+        self.temperature = config.get("llm.temperature", 0.2)
+        self.timeout = config.get("llm.timeout", 60.0)
         self.top_p = config.get("llm.top_p", 0.9)
         self.repeat_penalty = config.get("llm.repeat_penalty", 1.1)
         self.num_ctx = config.get("llm.num_ctx", 8192)
-        
-        # Trim trailing slashes from base_url
-        self.base_url = self.base_url.rstrip("/")
 
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """
@@ -51,7 +42,7 @@ class OllamaClient:
             }
         }
         
-        logger.info(f"Sending request to Ollama model '{self.model_name}' at {url} (Temp: {self.temperature})")
+        logger.info(f"Sending request to Ollama model '{self.model_name}' at {url}")
         
         try:
             response = requests.post(
@@ -61,7 +52,6 @@ class OllamaClient:
             )
             response.raise_for_status()
             response_json = response.json()
-            
             answer = response_json.get("message", {}).get("content", "").strip()
             return answer
             
@@ -81,13 +71,10 @@ class OllamaClient:
     def is_available(self) -> bool:
         """Checks if the Ollama service is running and has the model loaded."""
         try:
-            # Check version or tags
             tags_url = f"{self.base_url}/api/tags"
             response = requests.get(tags_url, timeout=1.5)
             if response.status_code == 200:
                 models = [m.get("name") for m in response.json().get("models", [])]
-                # Check if model name or base name is available
-                # e.g., llama3:latest contains llama3
                 available = any(self.model_name in m for m in models)
                 if not available:
                     logger.warning(f"Ollama is running, but model '{self.model_name}' is not downloaded. Available: {models}")

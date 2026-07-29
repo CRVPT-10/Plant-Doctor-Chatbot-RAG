@@ -25,10 +25,19 @@ class AppConfig:
 
     def _apply_env_overrides(self):
         # Override settings using environment variables if defined
+        if os.getenv("LLM_PROVIDER"):
+            self.config_data.setdefault("llm", {})["provider"] = os.getenv("LLM_PROVIDER")
         if os.getenv("OLLAMA_BASE_URL"):
             self.config_data.setdefault("llm", {})["base_url"] = os.getenv("OLLAMA_BASE_URL")
-        if os.getenv("LLM_MODEL"):
+        if os.getenv("OLLAMA_MODEL"):
+            self.config_data.setdefault("llm", {})["model"] = os.getenv("OLLAMA_MODEL")
+        elif os.getenv("LLM_MODEL"):
             self.config_data.setdefault("llm", {})["model"] = os.getenv("LLM_MODEL")
+        if os.getenv("GROQ_API_KEY"):
+            self.config_data.setdefault("llm", {})["groq_api_key"] = os.getenv("GROQ_API_KEY")
+        if os.getenv("GROQ_MODEL"):
+            self.config_data.setdefault("llm", {})["groq_model"] = os.getenv("GROQ_MODEL")
+            
         if os.getenv("EMBEDDING_MODEL"):
             self.config_data.setdefault("embedding", {})["model_name"] = os.getenv("EMBEDDING_MODEL")
         if os.getenv("RERANKER_MODEL"):

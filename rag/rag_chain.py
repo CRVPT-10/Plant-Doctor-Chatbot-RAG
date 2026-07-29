@@ -8,7 +8,7 @@ from langchain_core.documents import Document
 from pipeline.vector_store import VectorStoreManager
 from pipeline.retriever import AgriculturalRetriever
 from pipeline.reranker import CrossEncoderReranker
-from rag.llm_client import OllamaClient
+from backend.llm.factory import LLMFactory
 from rag.prompt_builder import RAGPromptBuilder
 from rag.memory import ConversationMemory
 from utils.config import config
@@ -25,13 +25,13 @@ class RAGChain:
     def __init__(
         self,
         vector_store_manager: VectorStoreManager = None,
-        llm_client: OllamaClient = None,
+        llm_client = None,
         memory: ConversationMemory = None
     ):
         self.vs_manager = vector_store_manager or VectorStoreManager()
         self.retriever = AgriculturalRetriever(vector_store_manager=self.vs_manager)
         self.reranker = CrossEncoderReranker()
-        self.llm_client = llm_client or OllamaClient()
+        self.llm_client = llm_client or LLMFactory.get_client()
         self.prompt_builder = RAGPromptBuilder()
         self.memory = memory or ConversationMemory()
         

@@ -13,7 +13,7 @@ from pipeline.chunker import DocumentChunker
 from pipeline.embedder import CachedEmbeddings
 from pipeline.vector_store import VectorStoreManager
 from pipeline.ingest import ingest_directory
-from rag.llm_client import OllamaClient
+from backend.llm.factory import LLMFactory
 from rag.memory import ConversationMemory
 from rag.rag_chain import RAGChain
 from voice.asr import SpeechToTextManager
@@ -41,7 +41,7 @@ app.add_middleware(
 logger.info("Initializing global pipeline managers...")
 embeddings = CachedEmbeddings()
 vector_store = VectorStoreManager(embeddings=embeddings)
-llm_client = OllamaClient()
+llm_client = LLMFactory.get_client()
 memory = ConversationMemory()
 rag_chain = RAGChain(vector_store_manager=vector_store, llm_client=llm_client, memory=memory)
 

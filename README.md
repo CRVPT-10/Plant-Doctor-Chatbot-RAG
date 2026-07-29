@@ -59,8 +59,10 @@ graph TD
 *   **Cross-Encoder Reranking**: Leverages **`BAAI/bge-reranker-base`** to re-evaluate the top 15 candidate document chunks, sorting the most contextually relevant resources to present to the LLM.
 *   **Metadata DB**: A dedicated local **SQLite database** (`data/metadata/metadata.db`) tracking document names, chunk IDs, source page mappings, and languages.
 
-### 🧠 Large Language Model (LLM)
-*   **Ollama**: Local inference server orchestrating the **`qwen2.5:7b`** model. Configured with a `temperature` of `0.2` and customized chat templates to force instruction-following and eliminate output hallucinations.
+### 🧠 Large Language Model (LLM) Client Abstraction
+*   **LLM Factory Pattern**: Refactored to support multiple LLM providers behind a common interface (`backend/llm/`). All RAG client invocations route through a unified abstraction, switching dynamically based on `LLM_PROVIDER` in your `.env` configuration.
+*   **Ollama (Local Development)**: Orchestrates local offline inference with the **`qwen2.5:7b`** model (or any customized model name) at a `temperature` of `0.2` for zero-cost RAG runs.
+*   **Groq API (Production Deployment)**: Integrated the high-speed **Groq Cloud completions API** (targeting **`llama-3.3-70b-versatile`**) for fast responses in cloud production instances without needing heavy local server resource requirements.
 
 ### 🎙️ Speech & Multilingual Processing
 *   **Speech-to-Text (STT)**: Powered by **`faster-whisper-base`** executing on the CPU (using `int8` quantization for optimal execution speeds).
@@ -74,11 +76,33 @@ graph TD
 
 ---
 
-## 🚀 Installation & Local Setup
+## ⚙️ Environment Configuration
+
+The application determines its LLM execution mode automatically based on the environment variables defined in your `.env` file:
+
+### 1. Local Development Mode (Ollama Offline)
+Use this setup to run the LLM completely offline on your local computer using Ollama:
+```ini
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:7b
+```
+
+### 2. Cloud Deployment Mode (Groq API)
+Use this setup to run the LLM in the cloud using Groq completions, bypassing Ollama completely:
+```ini
+LLM_PROVIDER=groq
+GROQ_API_KEY=gsk_your_groq_api_key_here
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+---
+
+## 🚀 Local Installation & Setup
 
 ### Prerequisites
 1.  **Python**: Version `3.10` to `3.12` installed.
-2.  **Ollama**: Install locally on your system, boot the server, and download the target model:
+2.  **Ollama** (Only required for Local Development Mode): Install locally, run the service, and pull the model:
     ```bash
     ollama serve
     # In another terminal window:
@@ -88,21 +112,44 @@ graph TD
 ### Quick Start with Make
 A `Makefile` is included to orchestrate virtual environment management and execution tasks.
 
-1.  **Initialize Environment & Virtual Environment**:
-    Creates a `.venv` folder, installs required library dependencies, creates folder structures, and installs a set of default dummy documents in `data/documents/`:
+1.  **Initialize Environment**:
+    Creates a `.venv` folder, installs required library dependencies, creates folder structures, and installs a set of default documents in `data/documents/`:
     ```bash
     make setup
     ```
-2.  **Launch Backend API Server**:
+2.  **Configure environment variables**:
+    Create `.env` based on `.env.example` and set your preferred `LLM_PROVIDER` parameters.
+3.  **Launch FastAPI Backend Server**:
     Starts the FastAPI server locally at `http://127.0.0.1:8000`:
     ```bash
     make run-backend
     ```
-3.  **Launch Streamlit Frontend**:
+4.  **Launch Streamlit Frontend**:
     Starts the user interface at `http://localhost:8501`:
     ```bash
     make run-frontend
     ```
+
+---
+
+## ☁️ Cloud Deployment (Render Blueprint)
+
+This project is configured to deploy directly to **[Render](https://render.com/)** using the included Blueprint file (`render.yaml`). This spins up separate Frontend (Streamlit) and Backend (FastAPI) web services.
+
+### Steps to Deploy on Render:
+1.  Push your codebase to your own GitHub repository.
+2.  Log in to your **Render Dashboard** and select **Blueprints** -> **New Blueprint Instance**.
+3.  Connect your GitHub repository. Render will automatically parse the `render.yaml` file.
+4.  Configure the environment parameters during instantiation:
+    *   Set `LLM_PROVIDER` to `groq`.
+    *   Securely enter your `GROQ_API_KEY` (obtained from the Groq Console).
+    *   (Optional) Customize models or ports if needed.
+5.  Click **Approve / Deploy**. Render will spin up:
+    *   `plant-doctor-backend`: A Python web service running FastAPI with a **10GB Persistent Disk** attached at `/opt/render/project/src/data` (ensuring your uploaded manuals, SQLite database, and FAISS index are preserved across restarts).
+    *   `plant-doctor-frontend`: A Streamlit web service connected directly to the backend URL via Render's service communication network.
+
+> [!IMPORTANT]
+> Running the RAG pipeline models (Whisper STT, SentenceTransformers, Cross-Encoder) requires a reasonable amount of memory. Deploying the backend service on Render's **Starter Instance (2GB RAM)** is highly recommended to avoid Out-Of-Memory (OOM) build failures on the free tier.
 
 ---
 
@@ -112,8 +159,9 @@ A `Makefile` is included to orchestrate virtual environment management and execu
 | :--- | :--- | :--- |
 | `/chat` | `POST` | Receives JSON text queries (query, session_id, language). Returns answers and citations. |
 | `/voice` | `POST` | Accepts multipart form upload of raw WAV voice recordings. Transcribes, queries RAG, synthesizes TTS, and returns audio stream URLs. |
+| `/translate` | `POST` | Translates a given text and generates TTS synthesized audio for real-time translation toggles. |
 | `/upload` | `POST` | Accepts a multipart document upload (PDF, DOCX, TXT, MD), immediately chunks, and pushes to vector index. |
-| `/embed` | `POST` | Forces a complete rebuild of the vector database from documents inside `data/documents/`. |
+| `/embed` | `POST` | Forces a complete rebuild of the vector database from documents inside `data/documents/` and clears response cache. |
 | `/history` | `GET` | Retrieves conversational history memory window for a specific `session_id`. |
 | `/history` | `DELETE`| Clears conversational history memory window for a specific `session_id`. |
 | `/health` | `GET` | Queries state readiness of vector index, metadata store, and local Ollama server connectivity. |
