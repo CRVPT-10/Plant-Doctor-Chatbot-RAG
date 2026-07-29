@@ -22,6 +22,8 @@ services:
         value: "false"
       - key: ASR_ENABLED
         value: "false"
+      - key: PYTHON_VERSION
+        value: "3.11.8"
     # Persistent Disks are not supported on Render Free Tier.
     # To enable persistent storage of uploaded manuals and metadata on a paid tier,
     # uncomment the block below:
@@ -42,3 +44,5 @@ services:
           type: web
           name: plant-doctor-backend
           property: host
+      - key: PYTHON_VERSION
+        value: "3.11.8"
