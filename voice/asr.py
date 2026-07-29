@@ -17,7 +17,7 @@ class SpeechToTextManager:
         self.models_dir = config.get_absolute_path("paths.models_dir")
         
         self.model = None
-        self.enabled = True
+        self.enabled = config.get("voice.asr.enabled", True)
         
         # Ensure models directory exists
         whisper_cache_dir = os.path.join(self.models_dir, "whisper")

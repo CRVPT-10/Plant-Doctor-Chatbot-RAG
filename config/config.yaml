@@ -75,6 +75,7 @@ voice:
     model_size: "base" # tiny, base, small, medium, large-v3
     device: "cpu"
     compute_type: "int8" # int8, float16
+    enabled: true
   tts:
     provider: "edge-tts" # 'edge-tts', 'gtts'
     voice_en: "en-US-GuyNeural"

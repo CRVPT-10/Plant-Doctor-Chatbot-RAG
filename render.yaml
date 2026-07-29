@@ -18,6 +18,10 @@ services:
         value: BAAI/bge-small-en-v1.5
       - key: RERANKER_MODEL
         value: BAAI/bge-reranker-base
+      - key: RERANKER_ENABLED
+        value: "false"
+      - key: ASR_ENABLED
+        value: "false"
     # Persistent Disks are not supported on Render Free Tier.
     # To enable persistent storage of uploaded manuals and metadata on a paid tier,
     # uncomment the block below:

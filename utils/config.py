@@ -37,6 +37,10 @@ class AppConfig:
             self.config_data.setdefault("llm", {})["groq_api_key"] = os.getenv("GROQ_API_KEY")
         if os.getenv("GROQ_MODEL"):
             self.config_data.setdefault("llm", {})["groq_model"] = os.getenv("GROQ_MODEL")
+        if os.getenv("RERANKER_ENABLED"):
+            self.config_data.setdefault("reranker", {})["enabled"] = os.getenv("RERANKER_ENABLED").lower() == "true"
+        if os.getenv("ASR_ENABLED"):
+            self.config_data.setdefault("voice", {}).setdefault("asr", {})["enabled"] = os.getenv("ASR_ENABLED").lower() == "true"
             
         if os.getenv("EMBEDDING_MODEL"):
             self.config_data.setdefault("embedding", {})["model_name"] = os.getenv("EMBEDDING_MODEL")
