@@ -18,10 +18,13 @@ services:
         value: BAAI/bge-small-en-v1.5
       - key: RERANKER_MODEL
         value: BAAI/bge-reranker-base
-    disk:
-      name: plant-doctor-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 10
+    # Persistent Disks are not supported on Render Free Tier.
+    # To enable persistent storage of uploaded manuals and metadata on a paid tier,
+    # uncomment the block below:
+    # disk:
+    #   name: plant-doctor-data
+    #   mountPath: /opt/render/project/src/data
+    #   sizeGB: 10
 
   # 2. Streamlit Frontend Web Service
   - type: web
