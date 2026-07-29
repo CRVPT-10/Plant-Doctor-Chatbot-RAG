@@ -59,14 +59,19 @@ class VectorStoreManager:
                 logger.error(f"Error loading FAISS index: {e}. Recreating empty index.")
         
         logger.info("FAISS index not found or failed to load. Creating empty index.")
-        # Create an initial empty index. FAISS requires at least 1 document to initialize,
-        # so we inject a placeholder and then remove it, or initialize with a small test doc.
-        init_doc = Document(
-            page_content="seed_document_for_init",
-            metadata={"chunk_id": "seed", "doc_id": "seed", "source": "seed"}
+        # Create an empty index locally without any network/embedding calls
+        import faiss
+        from langchain_community.docstore.in_memory import InMemoryDocstore
+        
+        # Dimension size is 384 for BAAI/bge-small-en-v1.5
+        dimension = 384
+        index = faiss.IndexFlatL2(dimension)
+        vs = FAISS(
+            embedding_function=self.embeddings,
+            index=index,
+            docstore=InMemoryDocstore({}),
+            index_to_docstore_id={}
         )
-        vs = FAISS.from_documents([init_doc], self.embeddings)
-        # Note: we don't save the seed to metadata db
         return vs
 
     def save(self):
