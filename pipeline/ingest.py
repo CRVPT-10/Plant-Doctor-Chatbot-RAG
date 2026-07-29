@@ -33,11 +33,18 @@ def ingest_directory(directory_path: str = None, force_rebuild: bool = False):
     # List all files in the directory
     supported_extensions = {".pdf", ".docx", ".txt", ".md"}
     files_to_process = []
+    provider = config.get("llm.provider", "ollama").lower()
+    
     for root, _, filenames in os.walk(dir_to_ingest):
         for fname in filenames:
             ext = os.path.splitext(fname)[1].lower()
             if ext in supported_extensions:
-                files_to_process.append(os.path.join(root, fname))
+                filepath = os.path.join(root, fname)
+                # Skip large files in cloud/Render mode to prevent memory OOM
+                if provider == "groq" and os.path.getsize(filepath) > 2 * 1024 * 1024:
+                    logger.info(f"Skipping large file {fname} ({os.path.getsize(filepath) / 1024 / 1024:.2f}MB) in cloud mode to prevent memory OOM.")
+                    continue
+                files_to_process.append(filepath)
                 
     if not files_to_process:
         logger.info("No documents found in directory to process.")
