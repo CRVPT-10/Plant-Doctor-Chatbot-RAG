@@ -9,7 +9,7 @@ from pipeline.vector_store import VectorStoreManager
 
 logger = get_logger("ingestion")
 
-def ingest_directory(directory_path: str = None, force_rebuild: bool = False):
+def ingest_directory(directory_path: str = None, force_rebuild: bool = False, vector_store: VectorStoreManager = None):
     """
     Ingests all supported documents in a directory.
     Skips already indexed documents unless force_rebuild is True.
@@ -20,9 +20,10 @@ def ingest_directory(directory_path: str = None, force_rebuild: bool = False):
     # Ensure source directory exists
     os.makedirs(dir_to_ingest, exist_ok=True)
     
-    # Initialize embedder and vector store manager
-    embeddings = CachedEmbeddings()
-    vector_store = VectorStoreManager(embeddings=embeddings)
+    # Initialize embedder and vector store manager if not provided
+    if vector_store is None:
+        embeddings = CachedEmbeddings()
+        vector_store = VectorStoreManager(embeddings=embeddings)
     
     if force_rebuild:
         logger.info("Force rebuild requested. Clearing vector store...")

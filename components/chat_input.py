@@ -70,12 +70,15 @@ def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url:
     elif audio_data is None and "last_recorded_audio" in st.session_state:
         del st.session_state.last_recorded_audio
         
+    kb_type = "govt_schemes" if st.session_state.current_page == "Govt Schemes" else "agriculture"
+    spinner_msg = "Analyzing schemes database..." if kb_type == "govt_schemes" else "Analyzing agricultural database..."
+
     if submit_query:
-        with st.spinner("Analyzing agricultural database..."):
+        with st.spinner(spinner_msg):
             try:
                 if is_voice:
                     audio_bytes = audio_data["bytes"]
-                    res = api_client.voice_query(audio_bytes, st.session_state.session_id, lang_code)
+                    res = api_client.voice_query(audio_bytes, st.session_state.session_id, lang_code, kb_type=kb_type)
                     transcription = res.get("transcription", "")
                     answer = res.get("answer", "")
                     audio_url = res.get("audio_url", "")
@@ -93,7 +96,7 @@ def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url:
                             st.session_state.playing_audio = audio_url
                         st.rerun()
                 else:
-                    res = api_client.chat_query(text_query, st.session_state.session_id, lang_code)
+                    res = api_client.chat_query(text_query, st.session_state.session_id, lang_code, kb_type=kb_type)
                     answer = res.get("answer", "")
                     audio_url = res.get("audio_url", "")
                     

@@ -77,6 +77,114 @@ if st.session_state.current_page == "Chat Assistant":
         render_diagnostics_card(last_turn)
         render_recent_history_panel()
 
+elif st.session_state.current_page == "Govt Schemes":
+    st.markdown("<h2>🏛️ Government Schemes & Benefits</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #90a4ae;'>Discover available government schemes, subsidies, and credit loans. Filter by criteria or ask the AI assistant directly.</p>", unsafe_allow_html=True)
+    
+    import json
+    schemes_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "govt_schemes", "schemes_list.json")
+    try:
+        with open(schemes_json_path, "r", encoding="utf-8") as f:
+            schemes = json.load(f)
+    except Exception as e:
+        schemes = []
+        st.error(f"Failed to load schemes: {e}")
+        
+    # 1. Filters Card
+    st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+    st.markdown("<h4>🔍 Filter Schemes</h4>", unsafe_allow_html=True)
+    
+    filter_cols = st.columns(3)
+    with filter_cols[0]:
+        state_list = ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Maharashtra", "Karnataka", "Tamil Nadu", "Gujarat"]
+        selected_state = st.selectbox("Select State", state_list, index=0)
+    with filter_cols[1]:
+        crop_list = ["All", "Paddy", "Cotton", "Wheat", "Maize", "Groundnut", "Sugarcane", "Potato", "Onion"]
+        selected_crop = st.selectbox("Select Crop Focus", crop_list, index=0)
+    with filter_cols[2]:
+        cat_list = ["All", "Income Support", "Insurance", "Irrigation", "Soil Health", "Agricultural Marketing", "Credit & Loans", "Horticulture", "Mechanization & Allied", "Farmer Groups", "Infrastructure", "Natural Farming"]
+        selected_cat = st.selectbox("Select Scheme Category", cat_list, index=0)
+        
+    # Eligibility tags
+    st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #90a4ae; margin-top: 10px; margin-bottom: 5px;'>ELIGIBILITY TAGS</p>", unsafe_allow_html=True)
+    elig_cols = st.columns(4)
+    with elig_cols[0]:
+        is_small = st.checkbox("Small Farmers", value=False)
+    with elig_cols[1]:
+        is_marginal = st.checkbox("Marginal Farmers", value=False)
+    with elig_cols[2]:
+        is_tenant = st.checkbox("Tenant Farmers", value=False)
+    with elig_cols[3]:
+        is_fpo = st.checkbox("FPOs / Groups", value=False)
+        
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Filter schemes logic
+    filtered_schemes = []
+    for s in schemes:
+        if selected_state != "All" and "All" not in s["states"] and selected_state not in s["states"]:
+            continue
+        if selected_crop != "All" and "All" not in s["crops"] and selected_crop not in s["crops"]:
+            continue
+        if selected_cat != "All" and s["category"] != selected_cat:
+            continue
+        if is_small and "Small Farmers" not in s["eligibility"]:
+            continue
+        if is_marginal and "Marginal Farmers" not in s["eligibility"]:
+            continue
+        if is_tenant and "Tenant Farmers" not in s["eligibility"]:
+            continue
+        if is_fpo and "FPOs" not in s["eligibility"] and "Farmer Groups" not in s["category"]:
+            continue
+        filtered_schemes.append(s)
+        
+    # Render matching scheme cards
+    st.markdown(f"<h4>📋 Available Matching Schemes ({len(filtered_schemes)})</h4>", unsafe_allow_html=True)
+    if filtered_schemes:
+        for idx in range(0, len(filtered_schemes), 3):
+            cols = st.columns(3)
+            for col_idx in range(3):
+                if idx + col_idx < len(filtered_schemes):
+                    s = filtered_schemes[idx + col_idx]
+                    with cols[col_idx]:
+                        badges = "".join(f'<span class="badge">{tag}</span>' for tag in s["eligibility"][:3])
+                        st.markdown(
+                            f'<div class="scheme-card">'
+                            f'  <div class="scheme-card-header">'
+                            f'    <span class="scheme-card-icon">🏛️</span>'
+                            f'    <span class="scheme-card-title">{s["title"]}</span>'
+                            f'  </div>'
+                            f'  <div class="scheme-card-body">'
+                            f'    <div class="scheme-card-fullname">{s["fullName"]}</div>'
+                            f'    <p class="scheme-card-desc">{s["description"]}</p>'
+                            f'    <div class="scheme-card-badges">{badges}</div>'
+                            f'  </div>'
+                            f'  <div class="scheme-card-footer">'
+                            f'    <a class="scheme-card-link" href="{s["url"]}" target="_blank">Know More ➔</a>'
+                            f'  </div>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+    else:
+        st.info("No government schemes match the selected filters. Try broadening your filter selection.")
+        
+    st.markdown("<hr style='border: 1px solid #16242e; margin: 35px 0;'>", unsafe_allow_html=True)
+    st.markdown("<h3>💬 Ask AI about Govt Schemes</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #90a4ae; font-size: 0.85rem;'>Get details about subsidies, documents required, and eligibility rules for the selected schemes.</p>", unsafe_allow_html=True)
+    
+    main_cols = st.columns([7, 3])
+    with main_cols[0]:
+        render_hero_header()
+        lang_names = {"en": "English", "hi": "Hindi", "te": "Telugu", "ta": "Tamil"}
+        selected_lang_name = lang_names.get(lang_code, "English")
+        render_chat_window(selected_lang_name)
+        render_chat_input(api_client, lang_code, API_URL)
+    with main_cols[1]:
+        last_turn = st.session_state.chat_history[-1] if st.session_state.chat_history else None
+        render_confidence_card(last_turn)
+        render_diagnostics_card(last_turn)
+        render_recent_history_panel()
+
 elif st.session_state.current_page == "Ingestion Panel":
     st.markdown("<h2>📤 Manual Ingestion Workspace</h2>", unsafe_allow_html=True)
     st.markdown("<p style='color: #90a4ae;'>Add new agricultural manuals, research pamphlets, or guideline text books directly into the vector database.</p>", unsafe_allow_html=True)

@@ -26,14 +26,17 @@ class RAGChain:
         self,
         vector_store_manager: VectorStoreManager = None,
         llm_client = None,
-        memory: ConversationMemory = None
+        memory: ConversationMemory = None,
+        system_template: str = None,
+        fallback_phrase: str = None
     ):
         self.vs_manager = vector_store_manager or VectorStoreManager()
         self.retriever = AgriculturalRetriever(vector_store_manager=self.vs_manager)
         self.reranker = CrossEncoderReranker()
         self.llm_client = llm_client or LLMFactory.get_client()
-        self.prompt_builder = RAGPromptBuilder()
+        self.prompt_builder = RAGPromptBuilder(system_template=system_template)
         self.memory = memory or ConversationMemory()
+        self.fallback_phrase = fallback_phrase or "I could not find sufficient information in the agricultural documents."
         
         self.response_cache_dir = config.get_absolute_path("paths.response_cache_dir")
         os.makedirs(self.response_cache_dir, exist_ok=True)
@@ -121,7 +124,7 @@ class RAGChain:
             
         # Filter memory history to prevent repeating fallback answers (repetition bias)
         clean_history = []
-        fallback_phrase = "I could not find sufficient information in the agricultural documents."
+        fallback_phrase = self.fallback_phrase
         for q, a in history:
             if fallback_phrase.strip().lower() not in a.strip().lower():
                 clean_history.append((q, a))
@@ -196,7 +199,7 @@ class RAGChain:
             })
             
         # Save to Cache (only if it is a successful search result rather than LLM error or fallback message)
-        fallback_phrase = "I could not find sufficient information in the agricultural documents."
+        fallback_phrase = self.fallback_phrase
         is_fallback = fallback_phrase.strip().lower() in response_text.strip().lower()
         
         if "encountered an error" not in response_text and not is_fallback:

@@ -14,10 +14,10 @@ class VectorStoreManager:
     Manages the FAISS index and the separate SQLite Metadata storage database.
     Supports incremental addition, deletion, and rebuilding.
     """
-    def __init__(self, embeddings: CachedEmbeddings = None):
+    def __init__(self, embeddings: CachedEmbeddings = None, faiss_dir: str = None, db_path: str = None):
         self.embeddings = embeddings or CachedEmbeddings()
-        self.faiss_dir = config.get_absolute_path("vector_store.index_path")
-        self.db_path = config.get_absolute_path("vector_store.metadata_db")
+        self.faiss_dir = faiss_dir or config.get_absolute_path("vector_store.index_path")
+        self.db_path = db_path or config.get_absolute_path("vector_store.metadata_db")
         
         # Ensure directories exist
         os.makedirs(self.faiss_dir, exist_ok=True)

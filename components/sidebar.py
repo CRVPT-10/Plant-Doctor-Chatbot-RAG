@@ -34,6 +34,7 @@ def render_sidebar(api_client: PlantDoctorAPIClient):
         
         pages = [
             {"label": "💬 Chat Assistant", "name": "Chat Assistant"},
+            {"label": "🏛️ Govt Schemes", "name": "Govt Schemes"},
             {"label": "📤 Ingestion Panel", "name": "Ingestion Panel"},
             {"label": "📄 Document Library", "name": "Document Library"},
             {"label": "⚙️ Settings", "name": "Settings"}

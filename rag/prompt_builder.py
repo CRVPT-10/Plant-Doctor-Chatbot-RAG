@@ -10,8 +10,8 @@ class RAGPromptBuilder:
     Constructs the system and user prompts for RAG execution, 
     incorporating context documents and historical memory.
     """
-    def __init__(self):
-        self.system_template = config.get_prompt("system_prompt")
+    def __init__(self, system_template: str = None):
+        self.system_template = system_template or config.get_prompt("system_prompt")
         self.context_template = config.get_prompt("context_template")
         self.user_template = config.get_prompt("user_prompt")
 

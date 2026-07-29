@@ -65,3 +65,104 @@
     color: #00e676;
     font-weight: 600;
 }
+
+/* Government Scheme Cards */
+.scheme-card {
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 250px;
+    justify-content: space-between;
+}
+
+.scheme-card:hover {
+    transform: translateY(-4px);
+    border-color: #00a86b;
+}
+
+.scheme-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.scheme-card-icon {
+    font-size: 1.3rem;
+}
+
+.scheme-card-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #ffffff;
+}
+
+.scheme-card-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.scheme-card-fullname {
+    font-size: 0.8rem;
+    color: #00a86b;
+    font-weight: 600;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scheme-card-desc {
+    font-size: 0.82rem;
+    color: #90a4ae;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scheme-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.badge {
+    background-color: rgba(0, 168, 107, 0.1);
+    color: #00a86b;
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.scheme-card-footer {
+    margin-top: 12px;
+    border-top: 1px solid #16242e;
+    padding-top: 10px;
+    text-align: right;
+}
+
+.scheme-card-link {
+    color: #00a86b;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.scheme-card-link:hover {
+    color: #00e676;
+    text-decoration: underline;
+}

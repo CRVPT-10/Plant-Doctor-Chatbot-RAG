@@ -59,6 +59,24 @@ llm_client = LLMFactory.get_client()
 memory = ConversationMemory()
 rag_chain = RAGChain(vector_store_manager=vector_store, llm_client=llm_client, memory=memory)
 
+# Initialize Government Schemes RAG components
+govt_schemes_faiss_dir = config.get_absolute_path("paths.govt_schemes_faiss_index_dir") or "data/govt_schemes/faiss"
+govt_schemes_db_path = config.get_absolute_path("paths.govt_schemes_metadata_db") or "data/govt_schemes/metadata/metadata.db"
+govt_schemes_system_prompt = config.get_prompt("govt_schemes_system")
+
+govt_schemes_vector_store = VectorStoreManager(
+    embeddings=embeddings,
+    faiss_dir=govt_schemes_faiss_dir,
+    db_path=govt_schemes_db_path
+)
+govt_schemes_rag_chain = RAGChain(
+    vector_store_manager=govt_schemes_vector_store,
+    llm_client=llm_client,
+    memory=memory,
+    system_template=govt_schemes_system_prompt,
+    fallback_phrase="I could not find sufficient information in the government schemes documents."
+)
+
 # Initialize Voice components
 asr_manager = SpeechToTextManager()
 translator = LanguageTranslator(vector_store_manager=vector_store)
@@ -95,6 +113,7 @@ class ChatRequest(BaseModel):
     query: str
     session_id: str = "default_session"
     language: Optional[str] = None # Optional manual language override
+    kb_type: Optional[str] = "agriculture" # "agriculture" or "govt_schemes"
 
 class TranslateRequest(BaseModel):
     text: str
@@ -170,8 +189,11 @@ async def chat(request: ChatRequest):
         retrieve_lang = routing_info["retrieve_lang"]
         needs_translation = routing_info["needs_translation"]
         
+        # Select active chain based on kb_type
+        active_chain = govt_schemes_rag_chain if request.kb_type == "govt_schemes" else rag_chain
+        
         # Query the RAG chain
-        result = rag_chain.query(
+        result = active_chain.query(
             user_query=routed_query, 
             session_id=session_id, 
             lang_filter=retrieve_lang
@@ -213,7 +235,8 @@ async def chat(request: ChatRequest):
 async def voice_chat(
     file: UploadFile = File(...),
     session_id: str = Form("default_session"),
-    language: Optional[str] = Form(None)
+    language: Optional[str] = Form(None),
+    kb_type: Optional[str] = Form("agriculture")
 ):
     """
     Receives voice audio file, transcribes (STT), routes adaptively (Translation),
@@ -251,7 +274,8 @@ async def voice_chat(
         needs_translation = routing_info["needs_translation"]
         
         # 3. Query RAG Chain
-        result = rag_chain.query(
+        active_chain = govt_schemes_rag_chain if kb_type == "govt_schemes" else rag_chain
+        result = active_chain.query(
             user_query=routed_query, 
             session_id=session_id, 
             lang_filter=retrieve_lang
@@ -363,11 +387,14 @@ async def health_check():
     Quick status report of index size, database counts, and model load flags.
     """
     indexed = vector_store.get_all_indexed_documents()
+    schemes_indexed = govt_schemes_vector_store.get_all_indexed_documents()
     ollama_ready = llm_client.is_available()
     return {
         "status": "healthy",
         "faiss_index_ready": vector_store.vector_store is not None,
+        "govt_schemes_index_ready": govt_schemes_vector_store.vector_store is not None,
         "ollama_ready": ollama_ready,
         "documents_indexed": indexed,
+        "govt_schemes_indexed": schemes_indexed,
         "asr_ready": asr_manager.enabled
     }

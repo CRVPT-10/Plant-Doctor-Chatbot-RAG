@@ -20,25 +20,27 @@ class PlantDoctorAPIClient:
             return {"status": "offline", "error": str(e), "faiss_index_ready": False, "ollama_ready": False}
         return {"status": "offline", "faiss_index_ready": False, "ollama_ready": False}
 
-    def chat_query(self, query: str, session_id: str, language: str) -> Dict[str, Any]:
+    def chat_query(self, query: str, session_id: str, language: str, kb_type: str = "agriculture") -> Dict[str, Any]:
         """Submits a text query to the RAG backend."""
         url = f"{self.base_url}/chat"
         payload = {
             "query": query,
             "session_id": session_id,
-            "language": language
+            "language": language,
+            "kb_type": kb_type
         }
         resp = requests.post(url, json=payload, timeout=90.0)
         resp.raise_for_status()
         return resp.json()
 
-    def voice_query(self, audio_bytes: bytes, session_id: str, language: str) -> Dict[str, Any]:
+    def voice_query(self, audio_bytes: bytes, session_id: str, language: str, kb_type: str = "agriculture") -> Dict[str, Any]:
         """Submits a WAV recording file to the STT+RAG backend."""
         url = f"{self.base_url}/voice"
         files = {"file": ("query.wav", audio_bytes, "audio/wav")}
         data = {
             "session_id": session_id,
-            "language": language
+            "language": language,
+            "kb_type": kb_type
         }
         resp = requests.post(url, files=files, data=data, timeout=120.0)
         resp.raise_for_status()
