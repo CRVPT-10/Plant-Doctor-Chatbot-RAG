@@ -33,9 +33,7 @@ logs/
 # Inference caches
 cache/
 
-# Local databases and FAISS indexes (rebuilt dynamically)
-data/faiss_index/
-data/metadata/
+# Local databases and FAISS indexes (rebuilt dynamically / precomputed shipped)
 data/processed/
 
 # Local model weights (downloaded automatically on first startup)
