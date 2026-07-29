@@ -65,6 +65,12 @@ def render_chat_window(selected_lang_name: str):
                 cols = st.columns(3)
                 for s_idx, src in enumerate(sources[:3]):
                     with cols[s_idx]:
+                        score_val = src.get("rerank_score")
+                        if score_val is None:
+                            score_val = src.get("score")
+                        if score_val is None:
+                            score_val = 0.0
+                            
                         st.markdown(
                             f'<div class="source-mini-card">'
                             f'  <div class="source-mini-header">'
@@ -73,7 +79,7 @@ def render_chat_window(selected_lang_name: str):
                             f'  </div>'
                             f'  <div class="source-mini-footer">'
                             f'    <span class="source-mini-page">Page {src.get("page", "N/A")}</span>'
-                            f'    <span class="source-mini-score">Score: {src.get("rerank_score", src.get("score", 0.0)):.2f}</span>'
+                            f'    <span class="source-mini-score">Score: {score_val:.2f}</span>'
                             f'  </div>'
                             f'</div>',
                             unsafe_allow_html=True
