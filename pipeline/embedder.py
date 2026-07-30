@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import json
+import time
 import requests
 import numpy as np
 from typing import List, Optional
@@ -93,9 +94,13 @@ class CachedEmbeddings(Embeddings):
             logger.error(f"Error writing to embedding cache: {e}")
 
     def _embed_via_hf(self, texts: List[str]) -> List[List[float]]:
-        # Hugging Face Inference API Router URL
         model_id = "BAAI/bge-small-en-v1.5"
-        url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
+        
+        # We will try both URLs to be robust
+        urls = [
+            f"https://api-inference.huggingface.co/models/{model_id}",
+            f"https://router.huggingface.co/hf-inference/models/{model_id}"
+        ]
         
         headers = {}
         hf_token = os.getenv("HF_TOKEN") or os.getenv("HF_API_KEY")
@@ -106,32 +111,62 @@ class CachedEmbeddings(Embeddings):
             
         payload = {
             "inputs": texts,
-            "options": {"wait_for_model": True}
+            "options": {"wait_for_model": False}  # Don't hold the connection open forever; handle cold start via retries
         }
         
         logger.info(f"Generating embeddings for {len(texts)} texts via Hugging Face Serverless API ({model_id})...")
-        try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=60.0)
-            resp.raise_for_status()
-            embeddings = resp.json()
-            
-            # Ensure return format is List[List[float]]
-            if isinstance(embeddings, list) and len(embeddings) > 0:
-                if isinstance(embeddings[0], list):
-                    if isinstance(embeddings[0][0], list):
-                        # Mean pool sequence dimension
-                        pooled = []
-                        for item in embeddings:
-                            arr = np.mean(np.array(item), axis=0)
-                            pooled.append(arr.tolist())
-                        return pooled
-                    return embeddings
-                elif isinstance(embeddings[0], (int, float)):
-                    return [embeddings]
-            raise ValueError(f"Unexpected response format from Hugging Face: {type(embeddings)}")
-        except Exception as e:
-            logger.error(f"Failed to generate embeddings via Hugging Face: {e}")
-            raise RuntimeError(f"Hugging Face embedding error: {e}")
+        
+        max_retries = 5
+        retry_delay = 3.0
+        
+        for attempt in range(max_retries):
+            # Alternate URLs across retries to bypass any single endpoint routing block
+            url = urls[attempt % len(urls)]
+            try:
+                # Use a tuple for timeout: (connection_timeout, read_timeout)
+                # 5.0 seconds to connect, 15.0 seconds to read
+                resp = requests.post(url, json=payload, headers=headers, timeout=(5.0, 15.0))
+                
+                # If model is loading, Hugging Face returns 503
+                if resp.status_code == 503:
+                    try:
+                        info = resp.json()
+                        est_time = info.get("estimated_time", 20.0)
+                    except Exception:
+                        est_time = 20.0
+                    logger.warning(f"Hugging Face model '{model_id}' is loading. Estimated time: {est_time}s. Retrying in {retry_delay}s... (Attempt {attempt+1}/{max_retries})")
+                    time.sleep(retry_delay)
+                    continue
+                    
+                resp.raise_for_status()
+                embeddings = resp.json()
+                
+                # Ensure return format is List[List[float]]
+                if isinstance(embeddings, list) and len(embeddings) > 0:
+                    if isinstance(embeddings[0], list):
+                        if isinstance(embeddings[0][0], list):
+                            # Mean pool sequence dimension
+                            pooled = []
+                            for item in embeddings:
+                                arr = np.mean(np.array(item), axis=0)
+                                pooled.append(arr.tolist())
+                            return pooled
+                        return embeddings
+                    elif isinstance(embeddings[0], (int, float)):
+                        return [embeddings]
+                raise ValueError(f"Unexpected response format from Hugging Face: {type(embeddings)}")
+                
+            except requests.exceptions.Timeout as te:
+                logger.warning(f"Timeout querying Hugging Face API ({url}) on attempt {attempt+1}/{max_retries}: {te}. Retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"Failed to generate embeddings via Hugging Face after {max_retries} attempts: {e}")
+                    raise RuntimeError(f"Hugging Face embedding error: {e}")
+                logger.warning(f"Error querying Hugging Face API ({url}) on attempt {attempt+1}/{max_retries}: {e}. Retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+                
+        raise RuntimeError(f"Hugging Face embedding error: Model failed to load within {max_retries} retries.")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed list of documents, utilizing cache for already computed items."""
