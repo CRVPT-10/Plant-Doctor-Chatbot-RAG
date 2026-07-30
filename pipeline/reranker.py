@@ -11,7 +11,17 @@ class CrossEncoderReranker:
     Reranks retrieved documents using a Cross-Encoder model (BAAI/bge-reranker-base).
     Computes a query-document match score and re-sorts results.
     """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(CrossEncoderReranker, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self, model_name: str = None, device: str = None):
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+            
         self.enabled = config.get("reranker.enabled", True)
         self.model_name = model_name or config.get("reranker.model_name", "BAAI/bge-reranker-base")
         self.device = device or config.get("reranker.device", "cpu")
@@ -35,6 +45,8 @@ class CrossEncoderReranker:
             except Exception as e:
                 logger.error(f"Failed to load CrossEncoder reranker: {e}. Disabling reranker.")
                 self.enabled = False
+                
+        self._initialized = True
 
     def rerank(self, query: str, documents: List[Document]) -> List[Document]:
         """
