@@ -26,7 +26,7 @@ class TextToSpeechManager:
             "ta": config.get("voice.tts.voice_ta", EDGE_VOICES["ta"]),
         }
 
-    def generate_speech(self, text: str, lang: str = "en") -> str:
+    async def generate_speech(self, text: str, lang: str = "en") -> str:
         """
         Converts text to an audio file and returns the path to the saved MP3 file.
         """
@@ -48,7 +48,7 @@ class TextToSpeechManager:
         
         if self.provider == "edge-tts":
             try:
-                self._generate_edge_tts(text, self.voices[lang], output_path)
+                await self._generate_edge_tts(text, self.voices[lang], output_path)
             except Exception as e:
                 logger.error(f"Edge TTS failed: {e}. Falling back to gTTS.")
                 self._generate_gtts(text, lang, output_path)
@@ -64,27 +64,9 @@ class TextToSpeechManager:
         tts.save(output_path)
         logger.info(f"gTTS audio saved to {output_path}")
 
-    def _generate_edge_tts(self, text: str, voice: str, output_path: str):
+    async def _generate_edge_tts(self, text: str, voice: str, output_path: str):
         """Generates speech using Edge TTS (async, requires internet)."""
         import edge_tts
-        
-        async def communicate():
-            communicate = edge_tts.Communicate(text, voice)
-            await communicate.save(output_path)
-            
-        # Standard sync runner for async edge-tts
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-            
-        if loop and loop.is_running():
-            # If inside an existing event loop, run in a separate thread to avoid nested loops block
-            import threading
-            from concurrent.futures import ThreadPoolExecutor
-            with ThreadPoolExecutor(1) as executor:
-                executor.submit(asyncio.run, communicate()).result()
-        else:
-            asyncio.run(communicate())
-            
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_path)
         logger.info(f"Edge-TTS audio saved to {output_path}")

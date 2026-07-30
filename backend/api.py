@@ -14,6 +14,7 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import shutil
+import anyio
 from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -170,50 +171,56 @@ def upload_document(
         raise HTTPException(status_code=500, detail=f"Ingestion error: {str(e)}")
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+async def chat(request: ChatRequest):
     """
     Processes text query through RAG pipeline.
     Applies translation routing if a language is specified.
     """
     try:
-        query = request.query
-        session_id = request.session_id
-        lang = request.language or "en"
-        
-        # Convert Romanized input to native script if necessary
-        if lang != "en":
-            query = translator.convert_to_native_script(query, lang)
+        def process_chat_logic():
+            query = request.query
+            session_id = request.session_id
+            lang = request.language or "en"
             
-        # Route query through translator (Checks native vs translate logic)
-        routing_info = translator.route_query(query, lang)
-        routed_query = routing_info["query"]
-        retrieve_lang = routing_info["retrieve_lang"]
-        needs_translation = routing_info["needs_translation"]
-        
-        # Select active chain based on kb_type
-        active_chain = govt_schemes_rag_chain if request.kb_type == "govt_schemes" else rag_chain
-        
-        # Query the RAG chain
-        result = active_chain.query(
-            user_query=routed_query, 
-            session_id=session_id, 
-            lang_filter=retrieve_lang
-        )
-        
-        final_answer = result["answer"]
-        
-        # If query was translated, translate the response back to original language
-        if needs_translation:
-            final_answer = translator.translate(
-                final_answer, 
-                source_lang="en", 
-                target_lang=lang
+            # Convert Romanized input to native script if necessary
+            if lang != "en":
+                query = translator.convert_to_native_script(query, lang)
+                
+            # Route query through translator (Checks native vs translate logic)
+            routing_info = translator.route_query(query, lang)
+            routed_query = routing_info["query"]
+            retrieve_lang = routing_info["retrieve_lang"]
+            needs_translation = routing_info["needs_translation"]
+            
+            # Select active chain based on kb_type
+            active_chain = govt_schemes_rag_chain if request.kb_type == "govt_schemes" else rag_chain
+            
+            # Query the RAG chain
+            result = active_chain.query(
+                user_query=routed_query, 
+                session_id=session_id, 
+                lang_filter=retrieve_lang
             )
+            
+            final_answer = result["answer"]
+            
+            # If query was translated, translate the response back to original language
+            if needs_translation:
+                final_answer = translator.translate(
+                    final_answer, 
+                    source_lang="en", 
+                    target_lang=lang
+                )
+            return query, routed_query, final_answer, needs_translation, result
+            
+        # Run blocking operations in worker threadpool
+        query, routed_query, final_answer, needs_translation, result = await anyio.to_thread.run_sync(process_chat_logic)
             
         # Generate audio file path using TTS for the final answer
         audio_url = None
+        lang = request.language or "en"
         try:
-            audio_filepath = tts_manager.generate_speech(final_answer, lang=lang)
+            audio_filepath = await tts_manager.generate_speech(final_answer, lang=lang)
             audio_filename = os.path.basename(audio_filepath)
             audio_url = f"/static/{audio_filename}"
         except Exception as tts_err:
@@ -233,7 +240,7 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/voice")
-def voice_chat(
+async def voice_chat(
     file: UploadFile = File(...),
     session_id: str = Form("default_session"),
     language: Optional[str] = Form(None),
@@ -251,50 +258,58 @@ def voice_chat(
         with open(temp_audio_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # 1. Speech-to-Text (ASR)
-        transcription, detected_lang = asr_manager.transcribe(temp_audio_path, language=language)
-        
-        # Convert Romanized transcript to native script if necessary
-        if detected_lang != "en":
-            transcription = translator.convert_to_native_script(transcription, detected_lang)
+        def process_voice_logic():
+            # 1. Speech-to-Text (ASR)
+            transcription, detected_lang = asr_manager.transcribe(temp_audio_path, language=language)
             
-        if not transcription.strip():
+            # Convert Romanized transcript to native script if necessary
+            if detected_lang != "en":
+                transcription = translator.convert_to_native_script(transcription, detected_lang)
+                
+            if not transcription.strip():
+                return transcription, detected_lang, None, "I could not hear anything. Please try again.", None, None
+                
+            # 2. Adaptive Routing (Translator)
+            routing_info = translator.route_query(transcription, detected_lang)
+            routed_query = routing_info["query"]
+            retrieve_lang = routing_info["retrieve_lang"]
+            needs_translation = routing_info["needs_translation"]
+            
+            # 3. Query RAG Chain
+            active_chain = govt_schemes_rag_chain if kb_type == "govt_schemes" else rag_chain
+            result = active_chain.query(
+                user_query=routed_query, 
+                session_id=session_id, 
+                lang_filter=retrieve_lang
+            )
+            
+            final_answer = result["answer"]
+            
+            # 4. Translate answer back if translation occurred
+            if needs_translation:
+                final_answer = translator.translate(
+                    final_answer, 
+                    source_lang="en", 
+                    target_lang=detected_lang
+                )
+            return transcription, detected_lang, routed_query, final_answer, needs_translation, result
+            
+        # Run blocking operations in worker threadpool
+        transcription, detected_lang, routed_query, final_answer, needs_translation, result = await anyio.to_thread.run_sync(process_voice_logic)
+        
+        if result is None:
             return {
-                "transcription": "",
-                "answer": "I could not hear anything. Please try again.",
+                "transcription": transcription,
+                "answer": final_answer,
                 "audio_url": None,
                 "sources": [],
                 "confidence": 0.0,
                 "metrics": {}
             }
             
-        # 2. Adaptive Routing (Translator)
-        routing_info = translator.route_query(transcription, detected_lang)
-        routed_query = routing_info["query"]
-        retrieve_lang = routing_info["retrieve_lang"]
-        needs_translation = routing_info["needs_translation"]
-        
-        # 3. Query RAG Chain
-        active_chain = govt_schemes_rag_chain if kb_type == "govt_schemes" else rag_chain
-        result = active_chain.query(
-            user_query=routed_query, 
-            session_id=session_id, 
-            lang_filter=retrieve_lang
-        )
-        
-        final_answer = result["answer"]
-        
-        # 4. Translate answer back if translation occurred
-        if needs_translation:
-            final_answer = translator.translate(
-                final_answer, 
-                source_lang="en", 
-                target_lang=detected_lang
-            )
-            
         # 5. Text-to-Speech (TTS)
         # Generate audio file path
-        audio_filepath = tts_manager.generate_speech(final_answer, lang=detected_lang)
+        audio_filepath = await tts_manager.generate_speech(final_answer, lang=detected_lang)
         
         # Convert absolute local path to accessible URL path
         # StaticFiles mounts 'data/processed' at '/static'
@@ -321,21 +336,23 @@ def voice_chat(
             os.remove(temp_audio_path)
 
 @app.post("/translate")
-def translate_text(request: TranslateRequest):
+async def translate_text(request: TranslateRequest):
     """
     Translates text to target language and generates TTS voice output.
     """
     try:
-        translated_text = translator.translate(
-            request.text, 
-            source_lang=request.source_lang, 
-            target_lang=request.target_lang
+        translated_text = await anyio.to_thread.run_sync(
+            lambda: translator.translate(
+                request.text, 
+                source_lang=request.source_lang, 
+                target_lang=request.target_lang
+            )
         )
         
         # Generate audio file path using TTS for the translated answer
         audio_url = None
         try:
-            audio_filepath = tts_manager.generate_speech(translated_text, lang=request.target_lang)
+            audio_filepath = await tts_manager.generate_speech(translated_text, lang=request.target_lang)
             audio_filename = os.path.basename(audio_filepath)
             audio_url = f"/static/{audio_filename}"
         except Exception as tts_err:
