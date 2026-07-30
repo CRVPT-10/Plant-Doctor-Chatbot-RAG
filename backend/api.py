@@ -121,7 +121,7 @@ class TranslateRequest(BaseModel):
     target_lang: str
 
 @app.post("/upload")
-async def upload_document(
+def upload_document(
     file: UploadFile = File(...), 
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
@@ -170,7 +170,7 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=f"Ingestion error: {str(e)}")
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+def chat(request: ChatRequest):
     """
     Processes text query through RAG pipeline.
     Applies translation routing if a language is specified.
@@ -233,7 +233,7 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/voice")
-async def voice_chat(
+def voice_chat(
     file: UploadFile = File(...),
     session_id: str = Form("default_session"),
     language: Optional[str] = Form(None),
@@ -321,7 +321,7 @@ async def voice_chat(
             os.remove(temp_audio_path)
 
 @app.post("/translate")
-async def translate_text(request: TranslateRequest):
+def translate_text(request: TranslateRequest):
     """
     Translates text to target language and generates TTS voice output.
     """
@@ -350,7 +350,7 @@ async def translate_text(request: TranslateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/embed")
-async def rebuild_index():
+def rebuild_index():
     """
     Manually triggers full vector store rebuild from local data/documents folder.
     Clears the response cache to ensure fresh generated answers are returned.
@@ -364,7 +364,7 @@ async def rebuild_index():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/history")
-async def get_history(session_id: str = Query("default_session")):
+def get_history(session_id: str = Query("default_session")):
     """
     Retrieves conversational memory history list for session_id.
     """
@@ -375,7 +375,7 @@ async def get_history(session_id: str = Query("default_session")):
     }
 
 @app.delete("/history")
-async def delete_history(session_id: str = Query("default_session")):
+def delete_history(session_id: str = Query("default_session")):
     """
     Clears memory for session_id.
     """
@@ -383,7 +383,7 @@ async def delete_history(session_id: str = Query("default_session")):
     return {"status": "success", "message": f"Cleared session memory for {session_id}."}
 
 @app.get("/health")
-async def health_check():
+def health_check():
     """
     Quick status report of index size, database counts, and model load flags.
     """
