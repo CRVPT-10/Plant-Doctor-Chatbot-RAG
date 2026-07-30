@@ -223,28 +223,55 @@ elif st.session_state.current_page == "Ingestion Panel":
 
 elif st.session_state.current_page == "Document Library":
     st.markdown("<h2>📄 Grounded Document Library</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #90a4ae;'>The following reference texts are indexed in the FAISS vector database and used to answer farmer questions.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #90a4ae;'>The following reference texts are indexed in the FAISS vector databases and used to answer farmer questions.</p>", unsafe_allow_html=True)
     
-    st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-    indexed_docs = health_status.get("documents_indexed", [])
-    if indexed_docs:
-        for doc in indexed_docs:
-            st.markdown(
-                f'<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #16242e;">'
-                f'  <div style="display: flex; flex-direction: column;">'
-                f'    <span style="font-weight: 600; color: #ffffff;">📄 {doc["source"]}</span>'
-                f'    <span style="font-size: 0.78rem; color: #90a4ae;">ID: {doc["doc_id"]}</span>'
-                f'  </div>'
-                f'  <div style="display: flex; gap: 15px; align-items: center;">'
-                f'    <span style="background-color: rgba(0, 168, 107, 0.12); color: #00a86b; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">{doc["language"].upper()}</span>'
-                f'    <span style="font-size: 0.85rem; color: #e3e8ec; font-weight: 500;">{doc["chunks_count"]} semantic chunks</span>'
-                f'  </div>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-    else:
-        st.info("No documents have been indexed yet. Upload documents using the Ingestion Panel.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    tab1, tab2 = st.tabs(["🌱 Agricultural Documents", "🏛️ Government Schemes"])
+    
+    with tab1:
+        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='margin-top:0;'>Agricultural Reference Base</h4>", unsafe_allow_html=True)
+        indexed_docs = health_status.get("documents_indexed", [])
+        if indexed_docs:
+            for doc in indexed_docs:
+                st.markdown(
+                    f'<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #16242e;">'
+                    f'  <div style="display: flex; flex-direction: column;">'
+                    f'    <span style="font-weight: 600; color: #ffffff;">📄 {doc["source"]}</span>'
+                    f'    <span style="font-size: 0.78rem; color: #90a4ae;">ID: {doc["doc_id"]}</span>'
+                    f'  </div>'
+                    f'  <div style="display: flex; gap: 15px; align-items: center;">'
+                    f'    <span style="background-color: rgba(0, 168, 107, 0.12); color: #00a86b; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">{doc["language"].upper()}</span>'
+                    f'    <span style="font-size: 0.85rem; color: #e3e8ec; font-weight: 500;">{doc["chunks_count"]} semantic chunks</span>'
+                    f'  </div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("No agricultural documents have been indexed yet. Upload documents using the Ingestion Panel.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    with tab2:
+        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='margin-top:0;'>Government Schemes Reference Base</h4>", unsafe_allow_html=True)
+        schemes_indexed = health_status.get("govt_schemes_indexed", [])
+        if schemes_indexed:
+            for doc in schemes_indexed:
+                st.markdown(
+                    f'<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #16242e;">'
+                    f'  <div style="display: flex; flex-direction: column;">'
+                    f'    <span style="font-weight: 600; color: #ffffff;">📄 {doc["source"]}</span>'
+                    f'    <span style="font-size: 0.78rem; color: #90a4ae;">ID: {doc["doc_id"]}</span>'
+                    f'  </div>'
+                    f'  <div style="display: flex; gap: 15px; align-items: center;">'
+                    f'    <span style="background-color: rgba(0, 168, 107, 0.12); color: #00a86b; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">{doc["language"].upper()}</span>'
+                    f'    <span style="font-size: 0.85rem; color: #e3e8ec; font-weight: 500;">{doc["chunks_count"]} semantic chunks</span>'
+                    f'  </div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("No government schemes documents have been indexed yet.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 elif st.session_state.current_page == "Settings":
     st.markdown("<h2>⚙️ Application Settings</h2>", unsafe_allow_html=True)
