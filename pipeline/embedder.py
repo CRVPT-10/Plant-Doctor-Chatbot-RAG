@@ -96,11 +96,8 @@ class CachedEmbeddings(Embeddings):
     def _embed_via_hf(self, texts: List[str]) -> List[List[float]]:
         model_id = "BAAI/bge-small-en-v1.5"
         
-        # We will try both URLs to be robust
-        urls = [
-            f"https://api-inference.huggingface.co/models/{model_id}",
-            f"https://router.huggingface.co/hf-inference/models/{model_id}"
-        ]
+        # Use the active router domain which has valid DNS records
+        url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
         
         headers = {}
         hf_token = os.getenv("HF_TOKEN") or os.getenv("HF_API_KEY")
@@ -120,8 +117,6 @@ class CachedEmbeddings(Embeddings):
         retry_delay = 3.0
         
         for attempt in range(max_retries):
-            # Alternate URLs across retries to bypass any single endpoint routing block
-            url = urls[attempt % len(urls)]
             try:
                 # Use a tuple for timeout: (connection_timeout, read_timeout)
                 # 5.0 seconds to connect, 15.0 seconds to read
