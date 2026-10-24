@@ -12,7 +12,9 @@ services:
       - key: GROQ_API_KEY
         sync: false  # Must be filled securely inside the Render UI
       - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
+        # llama-3.3-70b-versatile was retired by Groq on 2026-08-16.
+        # Use a current Groq production model (gpt-oss-20b is a lighter/faster alt).
+        value: openai/gpt-oss-120b
       - key: DEVICE
         value: cpu
       - key: EMBEDDING_MODEL
