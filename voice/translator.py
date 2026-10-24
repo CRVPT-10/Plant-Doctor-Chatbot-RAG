@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, Tuple
 from deep_translator import GoogleTranslator, MyMemoryTranslator
 from utils.config import config
 from utils.logger import get_logger
-from utils.helpers import get_text_hash
+from utils.helpers import get_text_hash, detect_language
 from pipeline.vector_store import VectorStoreManager
 
 logger = get_logger("translator")
@@ -149,44 +149,50 @@ class LanguageTranslator:
         logger.error("All translation backends failed. Returning original text.")
         return text
 
-    def route_query(self, query: str, detected_lang: str) -> Dict[str, Any]:
+    def route_query(self, query: str, answer_lang: str) -> Dict[str, Any]:
         """
-        Implements the adaptive multilingual query routing workflow:
-        1. If language is English -> Retrieve Directly (no translation)
-        2. Else if native documents exist in Vector DB -> Retrieve Native documents directly
-        3. Else -> Translate query to English -> Retrieve English -> Generate English response.
+        Adaptive multilingual routing. The query's own language is detected from its
+        script, independently of `answer_lang` (the language the user wants the ANSWER in).
+        This prevents an English query typed while a non-English UI language is selected
+        from being wrongly transliterated/translated.
+
+        - 'retrieve_lang' is the language used for retrieval + generation.
+        - 'needs_translation' means the final answer must be translated into `answer_lang`.
         """
-        detected_lang = detected_lang.lower()
-        if detected_lang == "en":
-            logger.info("Adaptive Routing: Query is English. Direct retrieval.")
+        answer_lang = (answer_lang or "en").lower()
+        query_lang = detect_language(query)  # script-based: 'en' for Latin text, else hi/te/ta
+
+        # Case 1: the query text is English/Latin -> retrieve in English directly.
+        if query_lang == "en":
+            logger.info(f"Adaptive Routing: query is English/Latin. Retrieve EN, answer in '{answer_lang}'.")
             return {
                 "query": query,
                 "retrieve_lang": "en",
-                "needs_translation": False,
-                "original_lang": "en"
+                "needs_translation": answer_lang != "en",
+                "original_lang": answer_lang
             }
-            
-        # Check if native documents exist in vector store
+
+        # Case 2: the query is written in a native Indic script.
         indexed_docs = self.vs_manager.get_all_indexed_documents()
-        native_docs_exist = any(doc.get("language") == detected_lang for doc in indexed_docs)
-        
+        native_docs_exist = any(doc.get("language") == query_lang for doc in indexed_docs)
+
         if native_docs_exist:
-            logger.info(f"Adaptive Routing: Native documents found in '{detected_lang}'. Native retrieval.")
+            logger.info(f"Adaptive Routing: native '{query_lang}' documents found. Native retrieval.")
             return {
                 "query": query,
-                "retrieve_lang": detected_lang,
-                "needs_translation": False,
-                "original_lang": detected_lang
+                "retrieve_lang": query_lang,
+                "needs_translation": answer_lang != query_lang,
+                "original_lang": answer_lang
             }
-        else:
-            logger.info(f"Adaptive Routing: No native documents found for '{detected_lang}'. Falling back to English translation workflow.")
-            translated_query = self.translate(query, source_lang=detected_lang, target_lang="en")
-            return {
-                "query": translated_query,
-                "retrieve_lang": "en",
-                "needs_translation": True,
-                "original_lang": detected_lang
-            }
+
+        logger.info(f"Adaptive Routing: no native '{query_lang}' docs. Translate query -> EN, answer in '{answer_lang}'.")
+        translated_query = self.translate(query, source_lang=query_lang, target_lang="en")
+        return {
+            "query": translated_query,
+            "retrieve_lang": "en",
+            "needs_translation": answer_lang != "en",
+            "original_lang": answer_lang
+        }
 
     def convert_to_native_script(self, text: str, lang: str) -> str:
         """

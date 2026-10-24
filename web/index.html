@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plant Doctor — AI Assistant for Farmers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar">
+      <img class="logo" src="assets/logo.png" alt="Plant Doctor — AI Assistant for Farmers" />
+
+      <div class="side-label">🌐 LANGUAGE</div>
+      <div class="select-wrap">
+        <select id="language-select">
+          <option value="en">English (English)</option>
+          <option value="hi">हिंदी (Hindi)</option>
+          <option value="te">తెలుగు (Telugu)</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+        </select>
+        <span class="select-caret">⌄</span>
+      </div>
+
+      <div class="side-label">NAVIGATION</div>
+      <nav class="nav">
+        <button class="nav-item active" data-page="chat"><span class="nav-ic">💬</span> Chat Assistant</button>
+        <button class="nav-item" data-page="schemes"><span class="nav-ic">🏛️</span> Govt Schemes</button>
+        <button class="nav-item" data-page="ingest"><span class="nav-ic">📤</span> Ingestion Panel</button>
+        <button class="nav-item" data-page="library"><span class="nav-ic">📄</span> Document Library</button>
+        <button class="nav-item" data-page="history"><span class="nav-ic">🕘</span> Conversation History</button>
+        <button class="nav-item" data-page="settings"><span class="nav-ic">⚙️</span> Settings</button>
+      </nav>
+
+      <div class="side-label">SYSTEM STATUS</div>
+      <div class="status-panel">
+        <div class="status-row"><span>FAISS Index</span><span id="st-faiss" class="st-off">—</span></div>
+        <div class="status-row"><span>Ollama (LLM)</span><span id="st-llm" class="st-off">—</span></div>
+        <div class="status-row"><span>Embeddings</span><span id="st-embed" class="st-off">—</span></div>
+        <div class="status-row"><span>Voice Engine</span><span id="st-voice" class="st-off">—</span></div>
+      </div>
+
+      <div class="side-label">QUICK STATS</div>
+      <div class="status-panel">
+        <div class="status-row"><span>Indexed Documents</span><span id="qs-docs" class="qs-val">—</span></div>
+        <div class="status-row"><span>Total Chunks</span><span id="qs-chunks" class="qs-val">—</span></div>
+        <div class="status-row"><span>Last Updated</span><span id="qs-updated" class="qs-val">—</span></div>
+        <div class="status-row"><span>Model</span><span id="qs-model" class="qs-val model">—</span></div>
+      </div>
+
+      <button id="clear-btn" class="clear-btn">🧹 Clear Conversation</button>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main class="main">
+      <div class="topbar">
+        <div class="hero">
+          <h1 id="hero-title">Hello, Farmer! 🌱</h1>
+          <p id="hero-sub">I'm Plant Doctor, your multilingual AI assistant for all agricultural queries.</p>
+        </div>
+        <div class="topbar-actions" id="topbar-actions">
+          <button id="voice-mode-btn" class="voice-mode-btn">🎙️ Voice Mode</button>
+          <div class="theme-toggle" id="theme-toggle">
+            <span class="theme-opt">☀️</span>
+            <span class="theme-opt active">🌙</span>
+          </div>
+        </div>
+      </div>
+
+      <section id="view-chat" class="chat-card">
+        <div class="chat-banner">
+          <span class="banner-ic">🌾</span>
+          <span>Ask me anything about crops, diseases, soil, fertilizers, irrigation and more...</span>
+        </div>
+
+        <div id="chat-log" class="chat-log"></div>
+
+        <div id="typing" class="typing hidden">
+          <div class="avatar bot">🤖</div>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+
+        <div class="composer">
+          <div class="composer-row">
+            <div class="composer-input">
+              <span class="attach">📎</span>
+              <input id="chat-input" type="text" placeholder="Type your question here..." autocomplete="off" />
+            </div>
+            <button id="voice-btn" class="ca-btn voice">🎤 Voice Input</button>
+            <button id="send-btn" class="send-btn" title="Send">➤</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Other pages render here (Govt Schemes, Ingestion, Library, History, Settings) -->
+      <section id="view-page" class="view-page hidden"></section>
+    </main>
+
+    <!-- ============ RIGHT PANEL ============ -->
+    <aside class="right">
+      <div class="card">
+        <div class="card-head"><span class="ch-ic">🛡️</span> Response Confidence</div>
+        <div class="gauge-wrap">
+          <svg id="gauge" width="170" height="150" viewBox="0 0 120 110"></svg>
+          <div id="conf-label" class="conf-label">No Response Yet</div>
+          <div id="conf-sub" class="conf-sub">Ask a question to see semantic score diagnostics.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="ch-ic">⚡</span> Performance Diagnostics</div>
+        <div class="diag-row"><span>Retrieval Latency</span><span id="d-retrieval" class="diag-val">— ms</span></div>
+        <div class="diag-row"><span>Rerank Latency</span><span id="d-rerank" class="diag-val">— ms</span></div>
+        <div class="diag-row"><span>LLM Inference</span><span id="d-llm" class="diag-val">— ms</span></div>
+        <div class="diag-row total"><span>Total Response Time</span><span id="d-total" class="diag-val total">— s</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="ch-ic">⏱️</span> Recent Conversations</div>
+        <div id="recent-list" class="recent-list">
+          <p class="recent-empty">No interactions recorded yet.</p>
+        </div>
+        <button id="view-all" class="view-all">View All History ›</button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+[
+  {
+    "id": "pm_kisan",
+    "title": "PM-KISAN",
+    "fullName": "Pradhan Mantri Kisan Samman Nidhi",
+    "description": "Direct income support of \u20b96,000 per year paid in three equal installments of \u20b92,000 directly into bank accounts.",
+    "category": "Income Support",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Maharashtra", "Bihar", "Rajasthan", "Karnataka", "Tamil Nadu"],
+    "crops": ["All"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "Landholding"],
+    "url": "https://pmkisan.gov.in"
+  },
+  {
+    "id": "pmfby",
+    "title": "PMFBY",
+    "fullName": "Pradhan Mantri Fasal Bima Yojana",
+    "description": "Low-premium crop insurance scheme covering standing crops, post-harvest losses, and localized calamities.",
+    "category": "Insurance",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Karnataka", "Tamil Nadu", "Maharashtra", "Gujarat"],
+    "crops": ["Paddy", "Cotton", "Wheat", "Maize", "Groundnut", "Sugarcane", "Potato", "Onion", "Turmeric", "Chillies"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "Tenant Farmers", "Sharecroppers"],
+    "url": "https://pmfby.gov.in"
+  },
+  {
+    "id": "pmksy",
+    "title": "PMKSY",
+    "fullName": "Pradhan Mantri Krishi Sinchai Yojana",
+    "description": "Subsidies of 45%-55% for micro-irrigation systems (drip and sprinkler) to improve farm water use efficiency.",
+    "category": "Irrigation",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Karnataka", "Maharashtra", "Gujarat", "Haryana", "Punjab"],
+    "crops": ["Sugarcane", "Cotton", "Maize", "Papaya", "Pomegranate", "Vegetables", "Banana", "Mango"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "Tenant Farmers", "FPOs"],
+    "url": "https://pmksy.gov.in"
+  },
+  {
+    "id": "soil_health_card",
+    "title": "Soil Health Card",
+    "fullName": "Soil Health Card Scheme",
+    "description": "Provides free soil health card analysis once every 2 years with macro, micro, and physical nutrient indicators and dosage advice.",
+    "category": "Soil Health",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Tamil Nadu", "Punjab", "Madhya Pradesh", "Karnataka"],
+    "crops": ["All"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "Landholding"],
+    "url": "https://soilhealth.dac.gov.in"
+  },
+  {
+    "id": "enam",
+    "title": "eNAM",
+    "fullName": "National Agriculture Market",
+    "description": "Pan-India digital trading portal networking APMC mandis for direct online auctions, assaying, and direct online payments.",
+    "category": "Agricultural Marketing",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Gujarat", "Haryana", "Tamil Nadu", "Karnataka"],
+    "crops": ["Paddy", "Cotton", "Wheat", "Maize", "Potato", "Onion", "Spices", "Pulses", "Oilseeds"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "FPOs", "Traders"],
+    "url": "https://enam.gov.in"
+  },
+  {
+    "id": "kcc",
+    "title": "Kisan Credit Card",
+    "fullName": "Kisan Credit Card (KCC) Loans",
+    "description": "Hassle-free short-term crop cultivation credit loans at 4% effective interest rate with prompt repayment subvention.",
+    "category": "Credit & Loans",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Maharashtra", "Karnataka", "Tamil Nadu", "Rajasthan"],
+    "crops": ["All", "Livestock", "Fisheries", "Dairy", "Poultry"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "Tenant Farmers", "Sharecroppers", "Livestock", "Fisheries"],
+    "url": "https://www.india.gov.in/spotlight/kisan-credit-card-scheme"
+  },
+  {
+    "id": "nhm",
+    "title": "National Horticulture Mission",
+    "fullName": "National Horticulture Mission (MIDH)",
+    "description": "Financial support of 40%-50% for establishing new orchards, protected cultivation structures like polyhouses, and cold storage chains.",
+    "category": "Horticulture",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Maharashtra", "Karnataka", "Tamil Nadu", "Kerala", "Uttar Pradesh"],
+    "crops": ["Mango", "Banana", "Guava", "Pomegranate", "Grapes", "Citrus", "Capsicum", "Tomato", "Flowers"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "FPOs", "Horticulture"],
+    "url": "https://midh.gov.in"
+  },
+  {
+    "id": "rkvy",
+    "title": "RKVY",
+    "fullName": "Rashtriya Krishi Vikas Yojana",
+    "description": "Incentivizes state-level farm mechanization, infrastructure, and allied agro-sectors (dairy, poultry, fisheries).",
+    "category": "Mechanization & Allied",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Tamil Nadu", "Uttar Pradesh", "Punjab", "West Bengal", "Maharashtra"],
+    "crops": ["All", "Dairy", "Poultry", "Fisheries"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "SC/ST", "Women", "FPOs", "Fisheries"],
+    "url": "https://rkvy.nic.in"
+  },
+  {
+    "id": "fpo",
+    "title": "FPO Scheme",
+    "fullName": "Formation of 10,000 FPOs",
+    "description": "Equity grants matching up to \u20b915 Lakh and credit guarantee covers up to \u20b92 Crore for registered Farmer Producer Organizations.",
+    "category": "Farmer Groups",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Uttar Pradesh", "Tamil Nadu", "Maharashtra", "Karnataka", "West Bengal"],
+    "crops": ["All"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "FPOs"],
+    "url": "https://www.sfacindia.com"
+  },
+  {
+    "id": "aif",
+    "title": "Agri Infrastructure Fund",
+    "fullName": "Agriculture Infrastructure Fund (AIF)",
+    "description": "Long-term debt financing facility with 3% interest subvention and CGTMSE credit guarantee for cold chain, warehouses, and post-harvest assets.",
+    "category": "Infrastructure",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Maharashtra", "Karnataka", "Punjab", "Uttar Pradesh", "Tamil Nadu"],
+    "crops": ["All"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "FPOs", "Startups"],
+    "url": "https://agriinfra.dac.gov.in"
+  },
+  {
+    "id": "natural_farming",
+    "title": "Natural Farming",
+    "fullName": "National Mission on Natural Farming",
+    "description": "Direct financial aid of \u20b915,000 per hectare for 3 years to transition to livestock-based chemical-free natural farming.",
+    "category": "Natural Farming",
+    "states": ["All", "Telangana", "Andhra Pradesh", "Gujarat", "Himachal Pradesh", "Madhya Pradesh", "Karnataka", "Uttar Pradesh"],
+    "crops": ["All"],
+    "eligibility": ["Small Farmers", "Marginal Farmers", "Landholding"],
+    "url": "https://naturalfarming.dac.gov.in"
+  }
+]

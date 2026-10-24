@@ -181,12 +181,9 @@ async def chat(request: ChatRequest):
             query = request.query
             session_id = request.session_id
             lang = request.language or "en"
-            
-            # Convert Romanized input to native script if necessary
-            if lang != "en":
-                query = translator.convert_to_native_script(query, lang)
-                
-            # Route query through translator (Checks native vs translate logic)
+
+            # Route query through translator. The query's own language is auto-detected
+            # from its script; `lang` only controls the answer language.
             routing_info = translator.route_query(query, lang)
             routed_query = routing_info["query"]
             retrieve_lang = routing_info["retrieve_lang"]
@@ -261,16 +258,14 @@ async def voice_chat(
         def process_voice_logic():
             # 1. Speech-to-Text (ASR)
             transcription, detected_lang = asr_manager.transcribe(temp_audio_path, language=language)
-            
-            # Convert Romanized transcript to native script if necessary
-            if detected_lang != "en":
-                transcription = translator.convert_to_native_script(transcription, detected_lang)
-                
+
             if not transcription.strip():
                 return transcription, detected_lang, None, "I could not hear anything. Please try again.", None, None
-                
-            # 2. Adaptive Routing (Translator)
-            routing_info = translator.route_query(transcription, detected_lang)
+
+            # 2. Adaptive Routing (Translator). Answer in the spoken/selected language;
+            # the query language is auto-detected from its script.
+            answer_lang = (language or detected_lang)
+            routing_info = translator.route_query(transcription, answer_lang)
             routed_query = routing_info["query"]
             retrieve_lang = routing_info["retrieve_lang"]
             needs_translation = routing_info["needs_translation"]
@@ -285,14 +280,15 @@ async def voice_chat(
             
             final_answer = result["answer"]
             
-            # 4. Translate answer back if translation occurred
+            # 4. Translate answer back into the desired answer language if needed
             if needs_translation:
                 final_answer = translator.translate(
-                    final_answer, 
-                    source_lang="en", 
-                    target_lang=detected_lang
+                    final_answer,
+                    source_lang="en",
+                    target_lang=answer_lang
                 )
-            return transcription, detected_lang, routed_query, final_answer, needs_translation, result
+            # Return answer_lang so TTS speaks the same language as the answer
+            return transcription, answer_lang, routed_query, final_answer, needs_translation, result
             
         # Run blocking operations in worker threadpool
         transcription, detected_lang, routed_query, final_answer, needs_translation, result = await anyio.to_thread.run_sync(process_voice_logic)

@@ -1,16 +1,30 @@
 import streamlit as st
+from datetime import datetime
 from backend.client import PlantDoctorAPIClient
+
+
+def _now_label() -> str:
+    """Returns a human-friendly timestamp like '10:24 AM' for chat turns."""
+    return datetime.now().strftime("%I:%M %p").lstrip("0")
 
 def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url: str):
     """
     Renders input card and buttons row, processes text/voice submissions, and autoplays audio.
     Columns are split uniformly [2, 2, 2, 4, 2] to ensure the action buttons have equal spacing.
     """
+    # Voice Mode banner (toggled from the top bar)
+    if st.session_state.get("voice_mode"):
+        st.markdown(
+            "<div class='voice-mode-banner'>🎙️ <b>Voice Mode is active</b> — click "
+            "<b>Voice Input</b> below and speak your question.</div>",
+            unsafe_allow_html=True
+        )
+
     st.markdown("<div class='input-wrapper'>", unsafe_allow_html=True)
-    
+
     text_query = st.text_input(
-        "Ask anything about crops, diseases, fertilizers...",
-        placeholder="Type your question here...",
+        "Type your question here...",
+        placeholder="📎  Type your question here...",
         label_visibility="collapsed",
         key="chat_text_input"
     )
@@ -90,7 +104,8 @@ def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url:
                             "audio_url": audio_url,
                             "sources": res.get("sources", []),
                             "confidence": res.get("confidence", 0.0),
-                            "metrics": res.get("metrics", {})
+                            "metrics": res.get("metrics", {}),
+                            "time": _now_label()
                         })
                         if audio_url:
                             st.session_state.playing_audio = audio_url
@@ -106,7 +121,8 @@ def render_chat_input(api_client: PlantDoctorAPIClient, lang_code: str, api_url:
                         "audio_url": audio_url,
                         "sources": res.get("sources", []),
                         "confidence": res.get("confidence", 0.0),
-                        "metrics": res.get("metrics", {})
+                        "metrics": res.get("metrics", {}),
+                        "time": _now_label()
                     })
                     if audio_url:
                         st.session_state.playing_audio = audio_url

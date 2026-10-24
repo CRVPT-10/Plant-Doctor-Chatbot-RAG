@@ -34,6 +34,8 @@ if "current_page" not in st.session_state:
     st.session_state.current_page = "Chat Assistant"
 if "last_text_query" not in st.session_state:
     st.session_state.last_text_query = ""
+if "voice_mode" not in st.session_state:
+    st.session_state.voice_mode = False
 
 # 4. Load Conversation History on startup
 if not st.session_state.chat_history:
@@ -57,6 +59,24 @@ lang_code, health_status = render_sidebar(api_client)
 
 # 6. Render Active Page Component
 if st.session_state.current_page == "Chat Assistant":
+    # Top bar: Voice Mode toggle + (decorative) light/dark theme switch
+    top_cols = st.columns([6, 1.5, 1.2])
+    with top_cols[1]:
+        vm_label = "🎙️ Voice Mode ●" if st.session_state.voice_mode else "🎙️ Voice Mode"
+        if st.button(vm_label, use_container_width=True,
+                     type="primary" if st.session_state.voice_mode else "secondary",
+                     key="voice_mode_toggle"):
+            st.session_state.voice_mode = not st.session_state.voice_mode
+            st.rerun()
+    with top_cols[2]:
+        st.markdown(
+            '<div class="theme-toggle">'
+            '  <span class="theme-opt">☀️</span>'
+            '  <span class="theme-opt theme-opt-active">🌙</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
     main_cols = st.columns([7, 3])
     
     # Left Column: Chat log + input controls
@@ -272,6 +292,47 @@ elif st.session_state.current_page == "Document Library":
         else:
             st.info("No government schemes documents have been indexed yet.")
         st.markdown("</div>", unsafe_allow_html=True)
+
+elif st.session_state.current_page == "Conversation History":
+    st.markdown("<h2>🕘 Conversation History</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #90a4ae;'>Your full question-and-answer history for the current session.</p>", unsafe_allow_html=True)
+
+    hist_cols = st.columns([7, 3])
+    with hist_cols[0]:
+        if st.session_state.chat_history:
+            for turn in reversed(st.session_state.chat_history):
+                ts = turn.get("time", "")
+                farmer = turn.get("farmer", "")
+                doctor = turn.get("doctor", "")
+                conf = int(turn.get("confidence", 0.0) * 100)
+                st.markdown(
+                    f'<div class="custom-card history-entry">'
+                    f'  <div class="history-entry-head">'
+                    f'    <span class="history-q">🧑‍🌾 {farmer}</span>'
+                    f'    <span class="history-time">{ts}</span>'
+                    f'  </div>'
+                    f'  <div class="history-a">🤖 {doctor}</div>'
+                    f'  <div class="history-foot"><span class="history-conf">Confidence: {conf}%</span></div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("No conversation history yet. Ask a question on the Chat Assistant page.")
+    with hist_cols[1]:
+        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='card-header'>📊 Session Summary</div>", unsafe_allow_html=True)
+        total = len(st.session_state.chat_history)
+        avg_conf = int((sum(t.get("confidence", 0.0) for t in st.session_state.chat_history) / total) * 100) if total else 0
+        st.markdown(
+            f"<div class='status-row'><span style='color:#90a4ae;'>Total Queries</span><span style='color:#fff;font-weight:600;'>{total}</span></div>"
+            f"<div class='status-row'><span style='color:#90a4ae;'>Avg. Confidence</span><span style='color:#00e676;font-weight:600;'>{avg_conf}%</span></div>",
+            unsafe_allow_html=True
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        if st.button("🧹 Clear All History", use_container_width=True, type="secondary"):
+            api_client.clear_history(st.session_state.session_id)
+            st.session_state.chat_history = []
+            st.rerun()
 
 elif st.session_state.current_page == "Settings":
     st.markdown("<h2>⚙️ Application Settings</h2>", unsafe_allow_html=True)

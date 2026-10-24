@@ -1,5 +1,5 @@
 /* Animations and Transitions */
-.chat-bubble-container {
+.chat-bubble-container, .msg-row {
     animation: fadeIn 0.4s ease-out;
 }
 

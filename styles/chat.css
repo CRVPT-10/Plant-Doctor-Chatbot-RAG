@@ -49,6 +49,10 @@
     line-height: 1.6;
 }
 
+.doctor-bubble p { margin: 0 0 10px 0; }
+.doctor-bubble p:last-child { margin-bottom: 0; }
+.doctor-bubble strong { color: #ffffff; }
+
 /* Bullet list override to checkmark icons */
 .doctor-bubble ul {
     list-style: none !important;
@@ -111,15 +115,19 @@
     flex-direction: column;
     justify-content: space-between;
     gap: 8px;
+    min-width: 0; /* allow grid/flex item to shrink instead of overflowing */
+    overflow: hidden;
 }
 
 .source-mini-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 8px;
     font-size: 0.82rem;
     font-weight: 600;
     color: #e3e8ec;
+    min-width: 0;
 }
 
 .source-mini-footer {
@@ -179,4 +187,151 @@ div[data-testid="stAudio"] {
     border: 1px solid #16242e !important;
     border-radius: 8px !important;
     padding: 5px !important;
+}
+
+/* ============================================================
+   Mockup refresh: top bar, prompt banner, avatars, message rows
+   ============================================================ */
+
+/* Top-right theme toggle (decorative) */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    border-radius: 999px;
+    padding: 4px;
+    width: fit-content;
+    margin-left: auto;
+}
+.theme-opt {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    opacity: 0.55;
+}
+.theme-opt-active {
+    background-color: #16242e;
+    opacity: 1;
+}
+
+/* Prompt banner at the top of the chat column */
+.chat-prompt-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #0b141b;
+    border: 1px solid #16242e;
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #90a4ae;
+    font-size: 0.92rem;
+    margin-bottom: 22px;
+}
+.chat-prompt-icon { font-size: 1.1rem; }
+
+/* Voice mode banner */
+.voice-mode-banner {
+    background-color: rgba(0, 168, 107, 0.1);
+    border: 1px solid rgba(0, 168, 107, 0.35);
+    color: #7fe9bf;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    margin-bottom: 12px;
+}
+
+/* Message rows with avatars */
+.msg-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+.user-row { justify-content: flex-end; }
+.doctor-row { justify-content: flex-start; }
+.doctor-row-head { margin-bottom: 6px; }
+
+.msg-col { display: flex; flex-direction: column; max-width: 82%; }
+.msg-col-right { align-items: flex-end; }
+.doctor-col { max-width: calc(100% - 50px); width: 100%; }
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    border: 1px solid #16242e;
+}
+.avatar-bot { background: linear-gradient(135deg, #0e2d27, #123830); }
+.avatar-user { background: linear-gradient(135deg, #004d40, #00695c); }
+
+.msg-meta {
+    font-size: 0.8rem;
+    color: #90a4ae;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.msg-meta-right { justify-content: flex-end; }
+.msg-name { font-weight: 600; color: #cfd8dc; }
+.msg-time { color: #546e7a; font-size: 0.76rem; }
+
+/* Sources grid inside the doctor card */
+.sources-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 4px;
+}
+@media (max-width: 900px) {
+    .sources-grid { grid-template-columns: 1fr; }
+}
+
+/* Source cards: title + book icon */
+.source-mini-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.source-mini-book { opacity: 0.8; flex: 0 0 auto; }
+
+/* Actions toolbar -> circular icon buttons */
+.bubble-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #16242e;
+    color: #90a4ae;
+    font-size: 0.95rem;
+}
+.action-icon-btn {
+    cursor: pointer;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid #16242e;
+    background-color: #0b141b;
+    transition: background 0.2s, border-color 0.2s;
+}
+.action-icon-btn:hover {
+    background-color: #16242e;
+    border-color: #00a86b;
 }

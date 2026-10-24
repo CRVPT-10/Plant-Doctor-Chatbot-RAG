@@ -13,6 +13,14 @@ section[data-testid="stSidebar"] {
     padding: 0 10px;
 }
 
+/* Logo banner image */
+section[data-testid="stSidebar"] div[data-testid="stImage"] {
+    margin: 2px 0 18px 0 !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stImage"] img {
+    border-radius: 10px;
+}
+
 .sidebar-logo {
     background: #00a86b;
     color: white;
