@@ -1,155 +1,208 @@
 # Plant Doctor Chatbot 🍃
 
-A voice-enabled, production-grade **Retrieval-Augmented Generation (RAG)** system designed to assist farmers with crop diagnoses, pest identification, fertilizer schedules, and general agricultural guidelines. 
+A voice-enabled **Retrieval-Augmented Generation (RAG)** assistant for farmers — crop
+diagnoses, pest identification, fertilizer schedules, agricultural guidelines, and Indian
+government schemes. It answers in **English, Hindi, Telugu, and Tamil**, from text or voice,
+with answers grounded strictly in a curated document base and shown alongside their sources.
 
-The chatbot processes multilingual voice or text inputs (supporting **English, Hindi, Telugu, and Tamil**), performs a hybrid dense-sparse semantic document search, reranks candidate documents using a Cross-Encoder, and runs a localized LLM (`qwen2.5:7b` via Ollama) to output strictly grounded, context-aware answers accompanied by citations and voice responses.
+The pipeline runs a hybrid dense + sparse search over a FAISS index, reranks the candidates
+with a cross-encoder (where resources allow), and generates a grounded answer with an LLM —
+**Groq (`openai/gpt-oss-120b`) in the cloud** or **Ollama (`qwen2.5:7b`) locally** — selected
+by a single environment variable. Answers come with citations, a confidence gauge, latency
+diagnostics, and spoken (TTS) output.
+
+---
+
+## 🖥️ User Interface
+
+The primary UI is a **custom single-page app** (vanilla HTML/CSS/JS, no build step) in
+[`web/`](web/), served directly by the FastAPI backend at its root URL (same origin — no CORS,
+no separate frontend service). It has:
+
+- **Chat Assistant** — multilingual chat (text + voice), per-reply language switch + translate,
+  inline audio, a 270° confidence gauge, performance diagnostics, and recent conversations.
+- **Govt Schemes** — filterable scheme cards plus an "Ask AI" box (text + voice) over a separate
+  schemes knowledge base.
+- **Ingestion Panel** — upload a document or rebuild the whole index.
+- **Document Library** — tabbed view of the indexed Agricultural and Government-Schemes bases.
+- **Conversation History** and **Settings**.
+
+> A legacy **Streamlit** app ([`app.py`](app.py) + [`components/`](components/)) is kept in the
+> repo for reference, but the `web/` SPA served by the backend is the current frontend.
 
 ---
 
 ## 🏗️ System Architecture
 
-The following diagram illustrates the complete processing lifecycle of a farmer's query from audio input to speech output:
-
 ```mermaid
 graph TD
     A[Farmer Input: Speech or Text] --> B{Input Type}
-    
+
     %% Voice Path
-    B -->|Audio File| C[ASR: faster-whisper]
-    C --> D[Language Detection & Translation]
-    D --> E[Multilingual Query Routing]
-    
+    B -->|Audio| C[ASR: faster-whisper]
+    C --> E[Adaptive Query Routing]
+
     %% Text Path
-    B -->|Text Query| E
-    
-    %% Ingestion / RAG Pipeline
-    E --> F[Dense Retrieval: FAISS + BGE Embeddings]
-    E --> G[Sparse Retrieval: BM25 Keyword Search]
-    F --> H[Hybrid Fusion Merging]
+    B -->|Text| E
+
+    %% Retrieval
+    E --> F[Dense Retrieval: FAISS + BGE embeddings]
+    E --> G[Sparse Retrieval: BM25]
+    F --> H[Hybrid Fusion]
     G --> H
-    
-    H --> I[Cross-Encoder Reranker: bge-reranker-base]
-    I --> J[Prompt Builder: Context + Clean History + Query]
-    J --> K[Ollama Chat: qwen2.5:7b]
-    
-    %% Response translation & Speech Path
-    K --> L{Query Language == English?}
-    L -->|No| M[Translate Answer back to original lang]
-    L -->|Yes| N[Final Grounded Answer]
+    H --> I[Cross-Encoder Rerank: bge-reranker-base]
+    I --> J[Prompt Builder: Context + History + Query]
+
+    %% Generation
+    J --> K{LLM Provider}
+    K -->|Groq gpt-oss-120b| L[Answer DIRECTLY in user's language]
+    K -->|Ollama qwen2.5:7b| M[Answer in English, then translate back]
+    L --> N[Final Grounded Answer + Citations]
     M --> N
-    N --> O[TTS Synthesis: edge-tts / gTTS]
-    O --> P[Audio Stream Output + Citation Panel]
+    N --> O[TTS: edge-tts / gTTS]
+    O --> P[Web UI: answer, sources, gauge, audio]
 ```
+
+**Embeddings** are `BAAI/bge-small-en-v1.5` (384-dim) either way: `sentence-transformers`
+locally, or `fastembed` (ONNX Runtime) in cloud mode — the vectors are identical, so the same
+FAISS index works for both.
 
 ---
 
 ## 🛠️ Tech Stack & Key Components
 
-### 🖥️ Frontend & Dashboard
-*   **Streamlit**: Powers the interactive web application interface. Features real-time voice recorder widgets, custom HSL color-palette styles, interactive sidebar controls (language selector, document upload interface, index rebuild button), sliding citation panels, and diagnostic latency metrics.
-*   **Streamlit Mic Recorder**: Custom browser component enabling raw client-side voice recording.
-
-### ⚙️ Backend API Server
-*   **FastAPI & Uvicorn**: High-performance HTTP server rendering endpoints for chat generation (`POST /chat`), voice transcription (`POST /voice`), document ingestion (`POST /upload`), FAISS index builds (`POST /embed`), history management (`/history`), and system status health queries (`GET /health`).
+### ⚙️ Backend (FastAPI + Uvicorn)
+Serves the API **and** the `web/` UI from one origin. Endpoints: `/chat`, `/voice`, `/translate`,
+`/upload`, `/embed`, `/history` (GET/DELETE), `/health`, and `/` (the SPA).
 
 ### 🔍 Retrieval & RAG Pipeline
-*   **Hybrid Search Engine**: Integrates a two-part search workflow:
-    1.  **Dense Retrieval**: Uses **FAISS** (Facebook AI Similarity Search) paired with **`BAAI/bge-small-en-v1.5`** embeddings.
-    2.  **Sparse Retrieval**: Implements a custom **BM25 (Sparse Keyword)** scoring matrix to locate precise agricultural terms.
-*   **Cross-Encoder Reranking**: Leverages **`BAAI/bge-reranker-base`** to re-evaluate the top 15 candidate document chunks, sorting the most contextually relevant resources to present to the LLM.
-*   **Metadata DB**: A dedicated local **SQLite database** (`data/metadata/metadata.db`) tracking document names, chunk IDs, source page mappings, and languages.
+- **Hybrid search**: **FAISS** dense similarity (`BAAI/bge-small-en-v1.5`) fused with a custom
+  pure-Python **BM25** sparse scorer.
+- **Cross-encoder reranking** with **`BAAI/bge-reranker-base`** over the top candidates (loaded as
+  a singleton; auto-disabled on low-RAM cloud tiers via `RERANKER_ENABLED`).
+- **Metadata DB**: SQLite (`data/metadata/metadata.db`, and `data/govt_schemes/metadata/`) tracking
+  chunk IDs, sources, pages, and languages.
+- **Two knowledge bases**: agricultural documents and government schemes, each with its own FAISS
+  index and metadata store.
 
-### 🧠 Large Language Model (LLM) Client Abstraction
-*   **LLM Factory Pattern**: Refactored to support multiple LLM providers behind a common interface (`backend/llm/`). All RAG client invocations route through a unified abstraction, switching dynamically based on `LLM_PROVIDER` in your `.env` configuration.
-*   **Ollama (Local Development)**: Orchestrates local offline inference with the **`qwen2.5:7b`** model (or any customized model name) at a `temperature` of `0.2` for zero-cost RAG runs.
-*   **Groq API (Production Deployment)**: Integrated the high-speed **Groq Cloud completions API** (targeting **`llama-3.3-70b-versatile`**) for fast responses in cloud production instances without needing heavy local server resource requirements.
+### 🧠 LLM Abstraction ([`backend/llm/`](backend/llm/))
+- **Factory pattern** switching on `LLM_PROVIDER`.
+- **Ollama** (local): `qwen2.5:7b`, zero-cost offline inference.
+- **Groq** (cloud): `openai/gpt-oss-120b` (fast, capable). Retired model IDs (e.g.
+  `llama-3.3-70b-versatile`, decommissioned 2026-08-16) are **auto-remapped** to a current model so
+  a stale env var doesn't break production.
 
-### 🎙️ Speech & Multilingual Processing
-*   **Speech-to-Text (STT)**: Powered by **`faster-whisper-base`** executing on the CPU (using `int8` quantization for optimal execution speeds).
-*   **Text-to-Speech (TTS)**: Built using **`edge-tts`** (Microsoft Neural neural voices) for smooth natural vocal generation in multiple Indian accents, falling back to **`gTTS`** (Google TTS) if network issues arise.
-*   **Translation Engine**: Uses **`deep-translator`** (Google Translator wrapper) to implement adaptive query routing and translate native queries into English when target document matches do not exist natively.
+### 🧮 Embeddings
+- **Local**: `sentence-transformers` (PyTorch) on CPU/GPU.
+- **Cloud**: `fastembed` (ONNX Runtime) — same BGE model, far less RAM than PyTorch, no inference
+  API or token required.
 
-### ⚡ Performance & Cache Optimization
-*   **Embedding Cache**: Persistent caching of document embedding calculations.
-*   **Translation Cache**: Caches localized translations of queries and responses to avoid external API roundtrips.
-*   **LLM Generation Cache**: Employs query-to-answer hashing (with history invalidation) to yield instant responses for repeated queries.
+### 🌐 Multilingual Processing
+- **Adaptive routing** detects the query's language by script, retrieves in the right language,
+  and keeps the *answer* language independent of the *query* language.
+- **Direct generation on capable models**: with Groq, the LLM writes the answer directly in the
+  user's language (one fast call). With weaker local models that degrade on Indian languages, it
+  generates English then translates back.
+- **Translation fallback chain**: `deep-translator` **Google → LLM → MyMemory**, so a rate-limited
+  free API never leaves answers untranslated.
+
+### 🎙️ Speech
+- **STT**: `faster-whisper` (`base`, int8) — disabled on low-RAM cloud tiers via `ASR_ENABLED`.
+- **TTS**: `edge-tts` (Microsoft neural voices) with `gTTS` fallback; audio served from `/static`.
+
+### ⚡ Caching
+Persistent SQLite caches for **embeddings**, **translations**, and **LLM responses**
+(hashed on prompt + history) under `cache/`.
 
 ---
 
 ## ⚙️ Environment Configuration
 
-The application determines its LLM execution mode automatically based on the environment variables defined in your `.env` file:
+The LLM/embedding mode is chosen by environment variables (see [`.env.example`](.env.example)).
 
-### 1. Local Development Mode (Ollama Offline)
-Use this setup to run the LLM completely offline on your local computer using Ollama:
+### Local (Ollama, offline)
 ```ini
 LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_BASE_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen2.5:7b
+DEVICE=cpu
 ```
 
-### 2. Cloud Deployment Mode (Groq API)
-Use this setup to run the LLM in the cloud using Groq completions, bypassing Ollama completely:
+### Cloud (Groq)
 ```ini
 LLM_PROVIDER=groq
 GROQ_API_KEY=gsk_your_groq_api_key_here
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=openai/gpt-oss-120b
+DEVICE=cpu
+RERANKER_ENABLED=false   # recommended on low-RAM tiers
+ASR_ENABLED=false        # Whisper is too heavy for the free tier
 ```
+
+> In cloud mode embeddings run locally via `fastembed` — **no `HF_TOKEN` is required**.
 
 ---
 
 ## 🚀 Local Installation & Setup
 
-### Prerequisites
-1.  **Python**: Version `3.10` to `3.12` installed.
-2.  **Ollama** (Only required for Local Development Mode): Install locally, run the service, and pull the model:
-    ```bash
-    ollama serve
-    # In another terminal window:
-    ollama pull qwen2.5:7b
-    ```
+**Prerequisites:** Python 3.10–3.12. For local LLM mode, [Ollama](https://ollama.com):
 
-### Quick Start with Make
-A `Makefile` is included to orchestrate virtual environment management and execution tasks.
+```bash
+ollama serve
+ollama pull qwen2.5:7b
+```
 
-1.  **Initialize Environment**:
-    Creates a `.venv` folder, installs required library dependencies, creates folder structures, and installs a set of default documents in `data/documents/`:
-    ```bash
-    make setup
-    ```
-2.  **Configure environment variables**:
-    Create `.env` based on `.env.example` and set your preferred `LLM_PROVIDER` parameters.
-3.  **Launch FastAPI Backend Server**:
-    Starts the FastAPI server locally at `http://127.0.0.1:8000`:
-    ```bash
-    make run-backend
-    ```
-4.  **Launch Streamlit Frontend**:
-    Starts the user interface at `http://localhost:8501`:
-    ```bash
-    make run-frontend
-    ```
+**Setup & run** (a `Makefile` is included):
+
+```bash
+make setup            # venv + dependencies + sample documents
+cp .env.example .env  # then set LLM_PROVIDER and keys
+make run-backend      # FastAPI + the web UI at http://127.0.0.1:8000
+```
+
+Open **http://127.0.0.1:8000/** — the backend serves the web UI and the API together.
+
+<details>
+<summary>Running the UI on a separate static dev server (optional)</summary>
+
+You can also serve `web/` on its own and point it at the backend:
+
+```bash
+python -m http.server 8502 --directory web --bind 127.0.0.1
+# open http://127.0.0.1:8502  (it auto-targets the backend on :8000)
+```
+</details>
+
+<details>
+<summary>Legacy Streamlit frontend (optional)</summary>
+
+```bash
+make run-frontend     # streamlit run app.py  -> http://localhost:8501
+```
+</details>
 
 ---
 
-## ☁️ Cloud Deployment (Render Blueprint)
+## ☁️ Cloud Deployment (Render)
 
-This project is configured to deploy directly to **[Render](https://render.com/)** using the included Blueprint file (`render.yaml`). This spins up separate Frontend (Streamlit) and Backend (FastAPI) web services.
+Deploy with the included Blueprint ([`render.yaml`](render.yaml)) — a **single** web service: the
+FastAPI backend serves both the API and the `web/` UI at its own URL.
 
-### Steps to Deploy on Render:
-1.  Push your codebase to your own GitHub repository.
-2.  Log in to your **Render Dashboard** and select **Blueprints** -> **New Blueprint Instance**.
-3.  Connect your GitHub repository. Render will automatically parse the `render.yaml` file.
-4.  Configure the environment parameters during instantiation:
-    *   Set `LLM_PROVIDER` to `groq`.
-    *   Securely enter your `GROQ_API_KEY` (obtained from the Groq Console).
-    *   (Optional) Customize models or ports if needed.
-5.  Click **Approve / Deploy**. Render will spin up:
-    *   `plant-doctor-backend`: A Python web service running FastAPI with a **10GB Persistent Disk** attached at `/opt/render/project/src/data` (ensuring your uploaded manuals, SQLite database, and FAISS index are preserved across restarts).
-    *   `plant-doctor-frontend`: A Streamlit web service connected directly to the backend URL via Render's service communication network.
+1. Push the repo to GitHub.
+2. Render Dashboard → **Blueprints → New Blueprint Instance** → connect the repo.
+3. Set env vars during setup:
+   - `LLM_PROVIDER = groq`
+   - `GROQ_API_KEY = <your key>`
+   - `GROQ_MODEL = openai/gpt-oss-120b`
+   - `DEVICE = cpu`, `RERANKER_ENABLED = false`, `ASR_ENABLED = false`
+4. **Approve / Deploy.** The app is served at the backend service's URL (e.g.
+   `https://<service>.onrender.com/`).
 
 > [!IMPORTANT]
-> Running the RAG pipeline models (Whisper STT, SentenceTransformers, Cross-Encoder) requires a reasonable amount of memory. Deploying the backend service on Render's **Starter Instance (2GB RAM)** is highly recommended to avoid Out-Of-Memory (OOM) build failures on the free tier.
+> On the **free tier (512 MB RAM)** the app runs with PyTorch, Whisper, and the reranker disabled,
+> using Groq for the LLM and `fastembed` (ONNX) for embeddings. This is tight but workable; if the
+> service OOMs or restarts, upgrade to an instance with more RAM. Groq occasionally **retires
+> models** — the code auto-remaps known-retired IDs, but you can also update the `GROQ_MODEL` env
+> var directly (it overrides `render.yaml`).
 
 ---
 
@@ -157,36 +210,27 @@ This project is configured to deploy directly to **[Render](https://render.com/)
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `/chat` | `POST` | Receives JSON text queries (query, session_id, language). Returns answers and citations. |
-| `/voice` | `POST` | Accepts multipart form upload of raw WAV voice recordings. Transcribes, queries RAG, synthesizes TTS, and returns audio stream URLs. |
-| `/translate` | `POST` | Translates a given text and generates TTS synthesized audio for real-time translation toggles. |
-| `/upload` | `POST` | Accepts a multipart document upload (PDF, DOCX, TXT, MD), immediately chunks, and pushes to vector index. |
-| `/embed` | `POST` | Forces a complete rebuild of the vector database from documents inside `data/documents/` and clears response cache. |
-| `/history` | `GET` | Retrieves conversational history memory window for a specific `session_id`. |
-| `/history` | `DELETE`| Clears conversational history memory window for a specific `session_id`. |
-| `/health` | `GET` | Queries state readiness of vector index, metadata store, and local Ollama server connectivity. |
+| `/` | `GET` | Serves the web UI (single-page app). |
+| `/chat` | `POST` | JSON `{query, session_id, language, kb_type}` → grounded answer, citations, confidence, metrics, TTS audio URL. |
+| `/voice` | `POST` | Multipart audio upload (WAV/WebM). Transcribes (STT), runs RAG, returns answer + TTS audio. |
+| `/translate` | `POST` | Translates text (Google → LLM → MyMemory fallback) and returns TTS audio. |
+| `/upload` | `POST` | Multipart document upload (PDF, DOCX, TXT, MD); chunks and indexes immediately. |
+| `/embed` | `POST` | Rebuilds the vector DB from `data/documents/` and clears the response cache. |
+| `/history` | `GET` / `DELETE` | Get or clear the conversation memory window for a `session_id`. |
+| `/health` | `GET` | Index/DB readiness, model flags, and indexed-document summaries. |
 
 ---
 
 ## 🧪 Verification & Benchmarks
 
-The project is accompanied by robust testing, evaluation, and latency benchmarking pipelines.
-
-*   **Unit Tests**: Run code assertions covering tokenizers, index builders, prompt templates, and endpoint integrations:
-    ```bash
-    make test
-    ```
-*   **RAG Metrics Evaluation**: Compares generated responses against test validation datasets to measure Faithfulness, Precision, Recall, and Relevancy:
-    ```bash
-    make eval
-    ```
-*   **Latency Benchmarking**: Traces and breaks down computational bottlenecks across retrieval steps, rerank logic, STT transcription, and LLM completions:
-    ```bash
-    make benchmark
-    ```
+```bash
+make test        # unit tests (chunker, retriever, rag)
+make eval        # RAG metrics: faithfulness, precision, recall, relevancy
+make benchmark   # latency breakdown across retrieval, rerank, STT, LLM
+```
 
 ---
 
 ## 📄 License
 
-This repository is maintained for local crop diagnostics research. Licensed under the [MIT License](LICENSE).
+Maintained for agricultural RAG research. Licensed under the [MIT License](LICENSE).
