@@ -2,7 +2,6 @@ import os
 import sqlite3
 import json
 import time
-import requests
 import numpy as np
 from typing import List, Optional
 from langchain.embeddings.base import Embeddings
@@ -36,10 +35,16 @@ class CachedEmbeddings(Embeddings):
         # Load embedding model based on LLM provider
         self.provider = config.get("llm.provider", "ollama").lower()
         self.model = None
+        self.fastembed_model = None
+        # In cloud mode (groq) use fastembed (ONNX) instead of PyTorch/SentenceTransformer:
+        # same BGE model and vectors, far less RAM, no inference API / no cost.
         self.use_api = (self.provider == "groq")
-        
+
         if self.use_api:
-            logger.info("Using Hugging Face Serverless API router for cloud embeddings (no local PyTorch/SentenceTransformer loaded).")
+            logger.info(f"Using fastembed (ONNX) for cloud embeddings: {self.model_name} (no PyTorch, no inference API).")
+            from fastembed import TextEmbedding
+            self.fastembed_model = TextEmbedding(self.model_name)
+            logger.info("fastembed embedding model loaded successfully.")
         else:
             # Load SentenceTransformer model locally
             logger.info(f"Loading SentenceTransformer: {self.model_name} on device {self.device}")
@@ -93,75 +98,22 @@ class CachedEmbeddings(Embeddings):
         except Exception as e:
             logger.error(f"Error writing to embedding cache: {e}")
 
-    def _embed_via_hf(self, texts: List[str]) -> List[List[float]]:
-        model_id = "BAAI/bge-small-en-v1.5"
-        
-        # Use the active router domain which has valid DNS records
-        url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
-        
-        headers = {}
-        hf_token = os.getenv("HF_TOKEN") or os.getenv("HF_API_KEY")
-        if hf_token:
-            headers["Authorization"] = f"Bearer {hf_token}"
-        else:
-            raise ValueError("HF_TOKEN (Hugging Face API Token) is required for production cloud embeddings. Please set it in your environment variables.")
-            
-        payload = {
-            "inputs": texts,
-            "options": {"wait_for_model": False}  # Don't hold the connection open forever; handle cold start via retries
-        }
-        
-        logger.info(f"Generating embeddings for {len(texts)} texts via Hugging Face Serverless API ({model_id})...")
-        
-        max_retries = 5
-        retry_delay = 3.0
-        
-        for attempt in range(max_retries):
-            try:
-                # Use a tuple for timeout: (connection_timeout, read_timeout)
-                # 5.0 seconds to connect, 15.0 seconds to read
-                resp = requests.post(url, json=payload, headers=headers, timeout=(5.0, 15.0))
-                
-                # If model is loading, Hugging Face returns 503
-                if resp.status_code == 503:
-                    try:
-                        info = resp.json()
-                        est_time = info.get("estimated_time", 20.0)
-                    except Exception:
-                        est_time = 20.0
-                    logger.warning(f"Hugging Face model '{model_id}' is loading. Estimated time: {est_time}s. Retrying in {retry_delay}s... (Attempt {attempt+1}/{max_retries})")
-                    time.sleep(retry_delay)
-                    continue
-                    
-                resp.raise_for_status()
-                embeddings = resp.json()
-                
-                # Ensure return format is List[List[float]]
-                if isinstance(embeddings, list) and len(embeddings) > 0:
-                    if isinstance(embeddings[0], list):
-                        if isinstance(embeddings[0][0], list):
-                            # Mean pool sequence dimension
-                            pooled = []
-                            for item in embeddings:
-                                arr = np.mean(np.array(item), axis=0)
-                                pooled.append(arr.tolist())
-                            return pooled
-                        return embeddings
-                    elif isinstance(embeddings[0], (int, float)):
-                        return [embeddings]
-                raise ValueError(f"Unexpected response format from Hugging Face: {type(embeddings)}")
-                
-            except requests.exceptions.Timeout as te:
-                logger.warning(f"Timeout querying Hugging Face API ({url}) on attempt {attempt+1}/{max_retries}: {te}. Retrying in {retry_delay}s...")
-                time.sleep(retry_delay)
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    logger.error(f"Failed to generate embeddings via Hugging Face after {max_retries} attempts: {e}")
-                    raise RuntimeError(f"Hugging Face embedding error: {e}")
-                logger.warning(f"Error querying Hugging Face API ({url}) on attempt {attempt+1}/{max_retries}: {e}. Retrying in {retry_delay}s...")
-                time.sleep(retry_delay)
-                
-        raise RuntimeError(f"Hugging Face embedding error: Model failed to load within {max_retries} retries.")
+    def _embed_fastembed(self, texts: List[str]) -> List[List[float]]:
+        """
+        Generate embeddings locally via fastembed (ONNX Runtime). Produces the same
+        BAAI/bge-small-en-v1.5 vectors as SentenceTransformer (cosine ~1.0), so they
+        are compatible with the existing FAISS index. L2-normalized to match.
+        """
+        logger.info(f"Generating embeddings for {len(texts)} texts via fastembed (ONNX)...")
+        vectors = list(self.fastembed_model.embed(texts))
+        out: List[List[float]] = []
+        for v in vectors:
+            arr = np.asarray(v, dtype=np.float32)
+            norm = float(np.linalg.norm(arr))
+            if norm > 0:
+                arr = arr / norm
+            out.append(arr.tolist())
+        return out
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed list of documents, utilizing cache for already computed items."""
@@ -182,7 +134,7 @@ class CachedEmbeddings(Embeddings):
         # Compute missing
         if to_compute_texts:
             if self.use_api:
-                computed_vectors = self._embed_via_hf(to_compute_texts)
+                computed_vectors = self._embed_fastembed(to_compute_texts)
             else:
                 logger.info(f"Computing embeddings for {len(to_compute_texts)} items...")
                 computed_vectors = self.model.encode(
@@ -208,10 +160,8 @@ class CachedEmbeddings(Embeddings):
             return cached
             
         if self.use_api:
-            # We prefix query for retrieval search as required by BGE models
-            query_prefix = "Represent this sentence for searching relevant passages: "
-            prefixed_text = query_prefix + text
-            vector = self._embed_via_hf([prefixed_text])[0]
+            # Plain embedding (no BGE query prefix) to match how the FAISS index was built.
+            vector = self._embed_fastembed([text])[0]
         else:
             vector = self.model.encode(text, normalize_embeddings=True).tolist()
             
