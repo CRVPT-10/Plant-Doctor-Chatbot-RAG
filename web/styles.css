@@ -316,6 +316,18 @@ html, body {
 .bubble-bot p:last-child { margin-bottom: 0; }
 .bubble-bot strong { color: #fff; }
 
+/* markdown tables */
+.md-table-wrap { overflow-x: auto; margin: 14px 0; }
+.md-table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.md-table th, .md-table td {
+  border: 1px solid var(--border);
+  padding: 9px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.md-table th { background: #0a141a; color: #fff; font-weight: 700; }
+.md-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
 /* checkmark bullets */
 .bubble-bot ul { list-style: none; padding: 0; margin: 14px 0; }
 .bubble-bot li {

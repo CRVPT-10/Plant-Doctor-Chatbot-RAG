@@ -104,6 +104,28 @@ class LanguageTranslator:
             out_parts.append(translator.translate(buf))
         return " ".join(p for p in out_parts if p)
 
+    _LANG_NAMES = {"en": "English", "hi": "Hindi", "te": "Telugu", "ta": "Tamil"}
+
+    def _translate_llm(self, text: str, source_lang: str, target_lang: str) -> str:
+        """
+        Translate using the configured LLM (Groq in prod, Ollama locally).
+        Robust fallback with no external rate limits; handles long text/tables.
+        """
+        src = self._LANG_NAMES.get(source_lang, source_lang)
+        tgt = self._LANG_NAMES.get(target_lang, target_lang)
+        prompt = (
+            f"Translate the following text from {src} to {tgt}.\n"
+            f"Rules:\n"
+            f"1. Output ONLY the translation in {tgt}, and nothing else (no notes, no preamble).\n"
+            f"2. Preserve the meaning, all numbers and units, and any Markdown/table structure.\n"
+            f"3. Keep proper nouns and scheme/product names as-is if they have no common {tgt} form.\n\n"
+            f"Text:\n{text}"
+        )
+        from backend.llm.factory import LLMFactory
+        client = LLMFactory.get_client()
+        out = client.generate(prompt)
+        return (out or "").strip()
+
     def translate(self, text: str, source_lang: str, target_lang: str) -> str:
         """
         Translates text from source_lang to target_lang.
@@ -135,7 +157,18 @@ class LanguageTranslator:
         except Exception as e:
             logger.warning(f"Google translation failed ({type(e).__name__}): {e}. Trying MyMemory fallback.")
 
-        # 2. Fallback: MyMemory
+        # 2. Fallback: LLM (robust, no external rate limits; good for long text/tables)
+        if allow_fallback:
+            try:
+                translated = self._translate_llm(text, source_lang, target_lang)
+                if translated and translated.strip() and translated.strip() != text.strip():
+                    logger.info("LLM fallback translation succeeded.")
+                    self._save_cached_translation(text, source_lang, target_lang, translated)
+                    return translated
+            except Exception as e:
+                logger.warning(f"LLM fallback translation failed ({type(e).__name__}): {e}. Trying MyMemory.")
+
+        # 3. Fallback: MyMemory
         if allow_fallback:
             try:
                 translated = self._translate_mymemory(text, source_lang, target_lang)

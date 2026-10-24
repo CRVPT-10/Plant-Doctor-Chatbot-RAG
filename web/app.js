@@ -43,7 +43,7 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-// Minimal markdown -> HTML (bold, italics, bullet/numbered lists, paragraphs)
+// Minimal markdown -> HTML (bold, italics, lists, paragraphs, tables)
 function mdToHtml(text) {
   if (!text) return "";
   const lines = text.split("\n");
@@ -56,12 +56,31 @@ function mdToHtml(text) {
   const flush = () => {
     if (list.length) { out.push("<ul>" + list.map(i => `<li>${inline(i)}</li>`).join("") + "</ul>"); list = []; }
   };
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) { flush(); continue; }
+  const isSep = (l) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    // Markdown table: a row with pipes followed by a |---|---| separator
+    if (line.includes("|") && i + 1 < lines.length && isSep(lines[i + 1])) {
+      flush();
+      const header = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].trim().includes("|") && lines[i].trim()) {
+        rows.push(cells(lines[i])); i++;
+      }
+      const thead = "<thead><tr>" + header.map(h => `<th>${inline(h)}</th>`).join("") + "</tr></thead>";
+      const tbody = "<tbody>" + rows.map(r =>
+        "<tr>" + header.map((_, c) => `<td>${inline(r[c] || "")}</td>`).join("") + "</tr>").join("") + "</tbody>";
+      out.push(`<div class="md-table-wrap"><table class="md-table">${thead}${tbody}</table></div>`);
+      continue;
+    }
+    if (!line) { flush(); i++; continue; }
     const m = line.match(/^([-*•]|\d+[.)])\s+(.*)$/);
-    if (m) list.push(m[2]);
-    else { flush(); out.push(`<p>${inline(line)}</p>`); }
+    if (m) { list.push(m[2]); i++; }
+    else { flush(); out.push(`<p>${inline(line)}</p>`); i++; }
   }
   flush();
   return out.join("");
