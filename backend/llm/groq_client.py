@@ -6,6 +6,13 @@ from utils.logger import get_logger
 
 logger = get_logger("groq_llm")
 
+# Groq retires models over time; map known-retired ids to current replacements
+# so a stale GROQ_MODEL env var doesn't break production with a 404.
+RETIRED_MODEL_MAP = {
+    "llama-3.3-70b-versatile": "openai/gpt-oss-120b",  # retired 2026-08-16
+    "llama-3.1-8b-instant": "openai/gpt-oss-20b",       # retired 2026-08-16
+}
+
 class GroqLLMClient(BaseLLMClient):
     """
     Client wrapper for interacting with Groq Cloud Completion API.
@@ -13,7 +20,15 @@ class GroqLLMClient(BaseLLMClient):
     """
     def __init__(self):
         self.api_key = config.get("llm.groq_api_key")
-        self.model_name = config.get("llm.groq_model", "llama-3.3-70b-versatile")
+        self.model_name = config.get("llm.groq_model", "openai/gpt-oss-120b")
+        # Transparently upgrade a retired model id to a current one.
+        if self.model_name in RETIRED_MODEL_MAP:
+            replacement = RETIRED_MODEL_MAP[self.model_name]
+            logger.warning(
+                f"Groq model '{self.model_name}' is retired; using '{replacement}' instead. "
+                f"Update the GROQ_MODEL environment variable to silence this."
+            )
+            self.model_name = replacement
         self.temperature = config.get("llm.temperature", 0.2)
         self.timeout = config.get("llm.timeout", 60.0)
         self.base_url = "https://api.groq.com/openai/v1/chat/completions"
