@@ -83,7 +83,7 @@ class RAGChain:
         except Exception as e:
             logger.error(f"Error writing response cache: {e}")
 
-    def query(self, user_query: str, session_id: str = "default_session", lang_filter: str = None) -> Dict[str, Any]:
+    def query(self, user_query: str, session_id: str = "default_session", lang_filter: str = None, answer_lang: str = None) -> Dict[str, Any]:
         """
         Processes a user query: Retrieves documents, Reranks them, 
         Builds the prompt, calls LLM (or cache), updates memory, and logs metrics.
@@ -132,15 +132,22 @@ class RAGChain:
         # 4. Construct prompts
         system_prompt, user_prompt = self.prompt_builder.build_prompts(user_query, reranked_docs, clean_history)
         
-        # Prepend explicit language target instruction to system prompt to prevent Qwen Chinese default responses
+        # Prepend explicit output-language instruction so the LLM writes the answer
+        # directly in the user's language (one call, no slow post-hoc translation).
+        # `answer_lang` is the desired output language; falls back to lang_filter/English.
         lang_names = {
             "en": "English",
             "hi": "Hindi",
             "te": "Telugu",
             "ta": "Tamil"
         }
-        target_lang_name = lang_names.get(lang_filter, "English") if lang_filter else "English"
-        lang_instruction = f"IMPORTANT: You MUST write your response in {target_lang_name}. Never use any other language (such as Chinese, etc.).\n"
+        out_lang = answer_lang or lang_filter or "en"
+        target_lang_name = lang_names.get(out_lang, "English")
+        lang_instruction = (
+            f"IMPORTANT: You MUST write your ENTIRE response in {target_lang_name}, "
+            f"including any tables and lists. Keep numbers, units and proper nouns intact. "
+            f"Never use any other language (such as Chinese, etc.).\n"
+        )
         system_prompt = lang_instruction + system_prompt
         
         # Prepare cache input key: combined system, user prompt, and session history length

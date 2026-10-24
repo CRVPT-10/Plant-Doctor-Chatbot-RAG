@@ -187,32 +187,29 @@ async def chat(request: ChatRequest):
             routing_info = translator.route_query(query, lang)
             routed_query = routing_info["query"]
             retrieve_lang = routing_info["retrieve_lang"]
-            needs_translation = routing_info["needs_translation"]
-            
+            # Whether the query text was translated for retrieval (for display only)
+            query_translated = routed_query.strip() != query.strip()
+
             # Select active chain based on kb_type
             active_chain = govt_schemes_rag_chain if request.kb_type == "govt_schemes" else rag_chain
-            
-            # Query the RAG chain
-            result = active_chain.query(
-                user_query=routed_query, 
-                session_id=session_id, 
-                lang_filter=retrieve_lang
-            )
-            
-            final_answer = result["answer"]
-            
-            # If query was translated, translate the response back to original language
-            if needs_translation:
-                final_answer = translator.translate(
-                    final_answer, 
-                    source_lang="en", 
-                    target_lang=lang
-                )
-            return query, routed_query, final_answer, needs_translation, result
+
+            # Capable cloud models (Groq) write the answer DIRECTLY in `lang` in one
+            # fast call. Weaker local models (Ollama/qwen) degenerate in Indian
+            # languages, so there we generate English then translate it back.
+            direct_gen = config.get("llm.provider", "ollama").lower() == "groq"
+            if direct_gen:
+                result = active_chain.query(routed_query, session_id, lang_filter=retrieve_lang, answer_lang=lang)
+                final_answer = result["answer"]
+            else:
+                result = active_chain.query(routed_query, session_id, lang_filter=retrieve_lang, answer_lang="en")
+                final_answer = result["answer"]
+                if lang != "en":
+                    final_answer = translator.translate(final_answer, source_lang="en", target_lang=lang)
+            return query, routed_query, final_answer, query_translated, result
             
         # Run blocking operations in worker threadpool
-        query, routed_query, final_answer, needs_translation, result = await anyio.to_thread.run_sync(process_chat_logic)
-            
+        query, routed_query, final_answer, query_translated, result = await anyio.to_thread.run_sync(process_chat_logic)
+
         # Generate audio file path using TTS for the final answer
         audio_url = None
         lang = request.language or "en"
@@ -222,10 +219,10 @@ async def chat(request: ChatRequest):
             audio_url = f"/static/{audio_filename}"
         except Exception as tts_err:
             logger.error(f"TTS generation error in chat endpoint: {tts_err}")
-            
+
         return {
             "query": query,
-            "translated_query": routed_query if needs_translation else None,
+            "translated_query": routed_query if query_translated else None,
             "answer": final_answer,
             "audio_url": audio_url,
             "sources": result["sources"],
@@ -268,30 +265,26 @@ async def voice_chat(
             routing_info = translator.route_query(transcription, answer_lang)
             routed_query = routing_info["query"]
             retrieve_lang = routing_info["retrieve_lang"]
-            needs_translation = routing_info["needs_translation"]
-            
-            # 3. Query RAG Chain
+            query_translated = routed_query.strip() != transcription.strip()
+
+            # 3. Query RAG Chain. Groq answers directly in answer_lang (one call);
+            # weaker local models generate English then translate back.
             active_chain = govt_schemes_rag_chain if kb_type == "govt_schemes" else rag_chain
-            result = active_chain.query(
-                user_query=routed_query, 
-                session_id=session_id, 
-                lang_filter=retrieve_lang
-            )
-            
-            final_answer = result["answer"]
-            
-            # 4. Translate answer back into the desired answer language if needed
-            if needs_translation:
-                final_answer = translator.translate(
-                    final_answer,
-                    source_lang="en",
-                    target_lang=answer_lang
-                )
+            direct_gen = config.get("llm.provider", "ollama").lower() == "groq"
+            if direct_gen:
+                result = active_chain.query(routed_query, session_id, lang_filter=retrieve_lang, answer_lang=answer_lang)
+                final_answer = result["answer"]
+            else:
+                result = active_chain.query(routed_query, session_id, lang_filter=retrieve_lang, answer_lang="en")
+                final_answer = result["answer"]
+                if answer_lang != "en":
+                    final_answer = translator.translate(final_answer, source_lang="en", target_lang=answer_lang)
+
             # Return answer_lang so TTS speaks the same language as the answer
-            return transcription, answer_lang, routed_query, final_answer, needs_translation, result
-            
+            return transcription, answer_lang, routed_query, final_answer, query_translated, result
+
         # Run blocking operations in worker threadpool
-        transcription, detected_lang, routed_query, final_answer, needs_translation, result = await anyio.to_thread.run_sync(process_voice_logic)
+        transcription, detected_lang, routed_query, final_answer, query_translated, result = await anyio.to_thread.run_sync(process_voice_logic)
         
         if result is None:
             return {
@@ -315,7 +308,7 @@ async def voice_chat(
         return {
             "transcription": transcription,
             "detected_language": detected_lang,
-            "translated_query": routed_query if needs_translation else None,
+            "translated_query": routed_query if query_translated else None,
             "answer": final_answer,
             "audio_url": audio_url,
             "sources": result["sources"],
