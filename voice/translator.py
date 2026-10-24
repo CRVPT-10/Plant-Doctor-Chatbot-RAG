@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from typing import Dict, Any, Optional, Tuple
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 from utils.config import config
 from utils.logger import get_logger
 from utils.helpers import get_text_hash
@@ -64,33 +64,90 @@ class LanguageTranslator:
         except Exception as e:
             logger.error(f"Error saving to translation cache: {e}")
 
+    # MyMemory uses locale-style codes (e.g. 'en-US') rather than short ISO codes.
+    _MYMEMORY_CODES = {
+        "en": "en-US",
+        "hi": "hi-IN",
+        "te": "te-IN",
+        "ta": "ta-IN",
+    }
+
+    def _translate_mymemory(self, text: str, source_lang: str, target_lang: str) -> str:
+        """
+        Fallback translator using the MyMemory backend (used when Google rate-limits us).
+        MyMemory caps each request near 500 chars, so long answers are split and rejoined.
+        """
+        src = self._MYMEMORY_CODES.get(source_lang, source_lang)
+        tgt = self._MYMEMORY_CODES.get(target_lang, target_lang)
+        translator = MyMemoryTranslator(source=src, target=tgt)
+
+        if len(text) <= 480:
+            return translator.translate(text)
+
+        # Split into <=480-char segments on sentence/paragraph boundaries to stay under the limit
+        import re
+        segments = re.split(r"(?<=[.!?\n])\s+", text)
+        out_parts = []
+        buf = ""
+        for seg in segments:
+            if len(buf) + len(seg) + 1 <= 480:
+                buf = f"{buf} {seg}".strip()
+            else:
+                if buf:
+                    out_parts.append(translator.translate(buf))
+                # A single segment longer than the limit is hard-sliced
+                while len(seg) > 480:
+                    out_parts.append(translator.translate(seg[:480]))
+                    seg = seg[480:]
+                buf = seg
+        if buf:
+            out_parts.append(translator.translate(buf))
+        return " ".join(p for p in out_parts if p)
+
     def translate(self, text: str, source_lang: str, target_lang: str) -> str:
         """
         Translates text from source_lang to target_lang.
-        Checks SQLite cache first.
+        Checks SQLite cache first, then tries Google and falls back to MyMemory
+        if Google fails (e.g. rate-limited with TooManyRequests).
         """
-        if not text or not self.enabled or source_lang == target_lang:
+        if not text or not self.enabled:
             return text
-            
+
+        if source_lang != "auto" and source_lang == target_lang:
+            return text
+
         # Check cache
         cached = self._get_cached_translation(text, source_lang, target_lang)
         if cached:
             logger.info(f"Found cached translation for: '{text[:30]}...' ({source_lang}->{target_lang})")
             return cached
-            
+
         logger.info(f"Translating text: '{text[:30]}...' from '{source_lang}' to '{target_lang}'")
+
+        allow_fallback = config.get("voice.translation.allow_fallback", True)
+
+        # 1. Primary: Google (GoogleTranslator supports 'hi', 'te', 'ta', 'en' natively)
         try:
-            # Map standard short codes to deep_translator supported codes if necessary
-            # GoogleTranslator supports 'hi', 'te', 'ta', 'en' natively
-            translator = GoogleTranslator(source=source_lang, target=target_lang)
-            translated = translator.translate(text)
-            
-            # Cache the result
-            self._save_cached_translation(text, source_lang, target_lang, translated)
-            return translated
+            translated = GoogleTranslator(source=source_lang, target=target_lang).translate(text)
+            if translated and translated.strip():
+                self._save_cached_translation(text, source_lang, target_lang, translated)
+                return translated
         except Exception as e:
-            logger.error(f"Translation failed: {e}. Returning original text.")
-            return text
+            logger.warning(f"Google translation failed ({type(e).__name__}): {e}. Trying MyMemory fallback.")
+
+        # 2. Fallback: MyMemory
+        if allow_fallback:
+            try:
+                translated = self._translate_mymemory(text, source_lang, target_lang)
+                if translated and translated.strip():
+                    logger.info("MyMemory fallback translation succeeded.")
+                    self._save_cached_translation(text, source_lang, target_lang, translated)
+                    return translated
+            except Exception as e:
+                logger.error(f"MyMemory fallback translation failed: {e}.")
+
+        logger.error("All translation backends failed. Returning original text.")
+        return text
 
     def route_query(self, query: str, detected_lang: str) -> Dict[str, Any]:
         """
