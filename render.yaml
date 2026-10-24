@@ -1,5 +1,6 @@
 services:
-  # 1. FastAPI Backend Web Service
+  # Single web service: FastAPI backend that ALSO serves the static web/ UI
+  # at its root (same origin -> no CORS, no cross-service URL wiring).
   - type: web
     name: plant-doctor-backend
     env: python
@@ -32,17 +33,6 @@ services:
     #   mountPath: /opt/render/project/src/data
     #   sizeGB: 10
 
-  # 2. Streamlit Frontend Web Service
-  - type: web
-    name: plant-doctor-frontend
-    env: python
-    buildCommand: pip install -r requirements-prod.txt
-    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
-    envVars:
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: plant-doctor-backend
-          property: host
-      - key: PYTHON_VERSION
-        value: "3.11.8"
+  # The old Streamlit frontend service has been removed: the new vanilla web/ UI
+  # is now served directly by the backend above at its root URL. You can delete
+  # the "plant-doctor-frontend" service in the Render dashboard.

@@ -412,3 +412,10 @@ def health_check():
         "govt_schemes_indexed": schemes_indexed,
         "asr_ready": asr_manager.enabled
     }
+
+# Serve the static web frontend (single-origin UI) at the root.
+# Mounted last so all API routes above take priority over the catch-all.
+WEB_DIR = os.path.join(config.base_dir, "web")
+if os.path.isdir(WEB_DIR):
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+    logger.info(f"Serving web UI from {WEB_DIR} at '/'")

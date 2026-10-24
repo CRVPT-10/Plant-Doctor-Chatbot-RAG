@@ -2,12 +2,15 @@
    Plant Doctor — frontend logic (vanilla JS -> FastAPI)
    ========================================================= */
 
-// Backend base URL. Override by setting window.BACKEND_URL before this script,
-// or via ?backend=... query param. Defaults to the FastAPI dev server.
+// Backend base URL.
+// - When the FastAPI backend serves this UI (production, single origin), use
+//   same-origin relative requests (empty string).
+// - When running the static dev server on :8502 separately, talk to :8000.
+// - Override anytime with ?backend=... or window.BACKEND_URL.
 const BACKEND_URL = (
   new URLSearchParams(location.search).get("backend") ||
   window.BACKEND_URL ||
-  "http://127.0.0.1:8000"
+  (location.port === "8502" ? "http://127.0.0.1:8000" : "")
 ).replace(/\/$/, "");
 
 const SESSION_ID = (() => {
