@@ -33,14 +33,14 @@ chunker:
 # Embedding model settings
 embedding:
   model_name: "BAAI/bge-small-en-v1.5" # Default BGE model
-  device: "cpu" # 'cpu', 'cuda'
+  device: "cuda" # 'cpu', 'cuda'
   cache_enabled: true
 
 # Reranking settings
 reranker:
   model_name: "BAAI/bge-reranker-base"
   top_n: 5
-  device: "cpu" # 'cpu', 'cuda'
+  device: "cuda" # 'cpu', 'cuda'
   enabled: true
 
 # Vector Store configurations
@@ -67,7 +67,7 @@ llm:
   top_p: 0.9
   repeat_penalty: 1.1
   num_ctx: 8192
-  base_url: "http://localhost:11434"
+  base_url: "http://127.0.0.1:11434"
   timeout: 60.0
 
 # Memory window
@@ -78,7 +78,7 @@ memory:
 voice:
   asr:
     model_size: "base" # tiny, base, small, medium, large-v3
-    device: "cpu"
+    device: "cuda"
     compute_type: "int8" # int8, float16
     enabled: true
   tts:
